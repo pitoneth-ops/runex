@@ -1,5 +1,6 @@
 import { Buffer } from "buffer";
-if (typeof globalThis.Buffer === "undefined") (globalThis as typeof globalThis & { Buffer: typeof Buffer }).Buffer = Buffer;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+if (typeof (globalThis as any).Buffer === "undefined") (globalThis as any).Buffer = Buffer;
 
 import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import {

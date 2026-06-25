@@ -31,6 +31,9 @@ from hero_data import (
 import random
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./rpgame.db")
+# Railway uses legacy postgres:// prefix — SQLAlchemy requires postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 _is_sqlite   = "sqlite" in DATABASE_URL
 engine       = create_engine(
     DATABASE_URL,

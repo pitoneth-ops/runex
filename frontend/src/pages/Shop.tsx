@@ -220,7 +220,7 @@ export default function Shop() {
                 +{result1.toLocaleString()}
               </span>
             </div>
-            <p className="text-xs mt-0.5" style={{ color: "#7a6030" }}>RuneX</p>
+            <p className="text-xs mt-0.5" style={{ color: "#7a6030" }}>wRuneX</p>
           </div>
         )}
       </ChestCard>
@@ -244,7 +244,7 @@ export default function Shop() {
             <div className="flex items-center justify-center gap-2 mb-2">
               <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={20} />
               <span style={{ fontFamily: "'Cinzel',serif", color: "#ff6060", fontSize: "1.4rem", fontWeight: 900 }}>
-                +{runex2.toLocaleString()} RuneX
+                +{runex2.toLocaleString()} wRuneX
               </span>
             </div>
             {item2 ? (

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useGameStore } from "../store";
-import { getPlayer, stakeChar, unstakeChar, claimTokens, claimAll, stakeAll, upgradeMiner, claimStarterMiner } from "../api";
+import { getPlayer, stakeChar, unstakeChar, claimTokens, claimAll, stakeAll, upgradeMiner } from "../api";
 import type { Character } from "../api";
 import { OsrsSprite, OsrsIcon } from "../components/OsrsSprite";
 import { CHAR_SPRITES, ARMOR_ICONS, GAME_ICONS } from "../sprites";
@@ -105,7 +105,7 @@ function MinerCard({ char, wallet, ownedStones, onRefresh }: {
               <OsrsIcon src={pickaxeSrc} fallback="⛏️" size={20} />
             </div>
             <p className={`text-xs capitalize font-bold osrs-label-${char.rarity}`}>
-              {char.rarity_emoji} {char.rarity} · {TOKENS_DAY[char.rarity]?.toLocaleString()} gp/day
+              {char.rarity_emoji} {char.is_starter ? "Starter" : char.rarity} · {char.is_starter ? "100" : TOKENS_DAY[char.rarity]?.toLocaleString()} gp/day
             </p>
           </div>
         </div>
@@ -203,8 +203,6 @@ export default function Mining() {
   const [claimingAll,   setClaimingAll] = useState(false);
   const [stakingAll,    setStakingAll]  = useState(false);
   const [claimAllToast, setClaimAllToast] = useState<number | null>(null);
-  const [claimingStarter, setClaimingStarter] = useState(false);
-  const [starterMsg,      setStarterMsg]      = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!wallet) return;
@@ -223,10 +221,11 @@ export default function Mining() {
   const expired     = miners.filter(c => !c.is_staked && c.days_left <= 0 && c.hours_left <= 0);
   const ownedStones = (player?.inventory ?? []).filter(i => i.item_type === "upgrade_stone").length;
 
+  const minerRate      = (c: { rarity: string; is_starter: boolean }) => c.is_starter ? 100 : (TOKENS_DAY[c.rarity] ?? 0);
   const totalPending   = staked.reduce((s, c) => s + c.pending_tokens, 0);
-  const gpPerDayStaked = staked.reduce((s, c) => s + (TOKENS_DAY[c.rarity] ?? 0), 0);
+  const gpPerDayStaked = staked.reduce((s, c) => s + minerRate(c), 0);
   const gpPerDayAll    = miners.filter(c => c.days_left > 0 || c.hours_left > 0)
-                                .reduce((s, c) => s + (TOKENS_DAY[c.rarity] ?? 0), 0);
+                                .reduce((s, c) => s + minerRate(c), 0);
 
   async function handleClaimAll() {
     if (!wallet || staked.length === 0 || claimingAll) return;
@@ -237,20 +236,6 @@ export default function Mining() {
       setClaimAllToast(res.tokens_claimed);
       const p = await getPlayer(wallet); setPlayer(p);
     } finally { setClaimingAll(false); }
-  }
-
-  async function handleClaimStarter() {
-    if (!wallet || claimingStarter) return;
-    setClaimingStarter(true);
-    setStarterMsg(null);
-    try {
-      await claimStarterMiner(wallet);
-      const p = await getPlayer(wallet); setPlayer(p);
-      setStarterMsg("Starter Miner claimed! It's now in your ready list.");
-    } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Could not claim starter miner.";
-      setStarterMsg(msg);
-    } finally { setClaimingStarter(false); }
   }
 
   async function handleStakeAll() {
@@ -330,7 +315,7 @@ export default function Mining() {
                   <div className="flex justify-between text-xs pt-1 border-t" style={{ borderColor: "rgba(107,79,16,0.3)" }}>
                     <span style={{ color: "#6b7280" }}>Idle miners missing out</span>
                     <span className="font-black" style={{ color: "#ef4444" }}>
-                      -{fmtTokens(idle.reduce((s, c) => s + (TOKENS_DAY[c.rarity] ?? 0), 0))}/day
+                      -{fmtTokens(idle.reduce((s, c) => s + minerRate(c), 0))}/day
                     </span>
                   </div>
                 )}
@@ -381,30 +366,6 @@ export default function Mining() {
             <span className="font-black" style={{ color: "#ffcc00" }}>{t}/day</span>
           </div>
         ))}
-      </div>
-
-      {/* Starter miner claim card — visible to all, requires ≥1 RuneX to claim */}
-      <div className="osrs-panel p-4 flex flex-col gap-3" style={{ borderColor: "rgba(96,165,250,0.4)", background: "rgba(96,165,250,0.05)" }}>
-        <div className="flex items-center gap-3">
-          <span className="text-3xl">⛏️</span>
-          <div>
-            <p className="font-bold text-blue-300 text-sm" style={{ fontFamily: "'Cinzel',serif" }}>Free Starter Miner</p>
-            <p className="text-xs text-gray-400">100 gp/day · 30 days · one per wallet · experiment for free</p>
-          </div>
-        </div>
-        {player?.starter_miner_claimed ? (
-          <p className="text-xs text-green-400">✔ Already claimed — check your ready list below.</p>
-        ) : (player?.runex ?? 0) >= 1 ? (
-          <button onClick={handleClaimStarter} disabled={claimingStarter}
-                  className="osrs-btn text-sm w-full">
-            {claimingStarter ? "Claiming…" : "🎁 Claim Free Miner"}
-          </button>
-        ) : (
-          <p className="text-xs text-gray-500">Requires at least 1 RuneX in your wallet to claim.</p>
-        )}
-        {starterMsg && (
-          <p className={`text-xs ${starterMsg.startsWith("Starter") ? "text-green-400" : "text-red-400"}`}>{starterMsg}</p>
-        )}
       </div>
 
       {miners.length === 0 && (

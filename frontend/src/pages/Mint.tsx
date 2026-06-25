@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../store";
-import { openBox, getPlayer } from "../api";
+import { openBox, getPlayer, claimStarterMiner } from "../api";
 import type { Character } from "../api";
 import { OsrsSprite, OsrsIcon } from "../components/OsrsSprite";
 import { CHAR_SPRITES, ARMOR_ICONS, CHEST_SPRITES, RUNEX_ICON } from "../sprites";
@@ -89,11 +89,27 @@ type Phase = "idle" | "shaking" | "open" | "revealed";
 
 export default function Mint() {
   const { wallet, player, setPlayer } = useGameStore();
-  const [phase, setPhase]   = useState<Phase>("idle");
-  const [error, setError]   = useState("");
-  const [result, setResult] = useState<Character | null>(null);
-  const pendingResult       = useRef<Character | null>(null);
+  const [phase, setPhase]           = useState<Phase>("idle");
+  const [error, setError]           = useState("");
+  const [result, setResult]         = useState<Character | null>(null);
+  const pendingResult               = useRef<Character | null>(null);
+  const [claimingStarter, setClaimingStarter] = useState(false);
+  const [starterMsg,      setStarterMsg]      = useState<string | null>(null);
   const nav = useNavigate();
+
+  async function handleClaimStarter() {
+    if (!wallet || claimingStarter) return;
+    setClaimingStarter(true);
+    setStarterMsg(null);
+    try {
+      await claimStarterMiner(wallet);
+      const p = await getPlayer(wallet); setPlayer(p);
+      setStarterMsg("Starter Miner claimed! Go to Mining to start it.");
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Could not claim starter miner.";
+      setStarterMsg(msg);
+    } finally { setClaimingStarter(false); }
+  }
 
   const BOX_COST  = 50_000;   // RuneX
   const canAfford = (player?.runex ?? 0) >= BOX_COST;
@@ -233,7 +249,6 @@ export default function Mint() {
           {(["archer","warrior","mage","miner"] as const).map(cls => (
             <div key={cls} className="flex items-center gap-3 rounded-xl px-4 py-3"
                  style={{ background: "rgba(0,0,0,0.3)", border: "1px solid #6b4f10" }}>
-              {/* Show all 4 rarity equipment icons */}
               <div className="flex gap-1">
                 {RARITIES.map(r => (
                   <OsrsIcon key={r} src={ARMOR_ICONS[cls][r]} fallback="" size={22} />
@@ -247,6 +262,31 @@ export default function Mint() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Free starter miner — always visible, requires ≥1 RuneX to claim */}
+      {phase === "idle" && (
+        <div className="osrs-panel p-4 flex flex-col gap-3" style={{ borderColor: "rgba(96,165,250,0.4)", background: "rgba(96,165,250,0.05)" }}>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">⛏️</span>
+            <div>
+              <p className="font-bold text-blue-300 text-sm" style={{ fontFamily: "'Cinzel',serif" }}>Free Starter Miner</p>
+              <p className="text-xs text-gray-400">100 gp/day · 30 days · one per wallet · no RuneX spent</p>
+            </div>
+          </div>
+          {player?.starter_miner_claimed ? (
+            <p className="text-xs text-green-400">✔ Already claimed — check Mining to start it.</p>
+          ) : (player?.runex ?? 0) >= 1 ? (
+            <button onClick={handleClaimStarter} disabled={claimingStarter} className="osrs-btn text-sm w-full">
+              {claimingStarter ? "Claiming…" : "🎁 Claim Free Miner"}
+            </button>
+          ) : (
+            <p className="text-xs text-gray-500">Requires at least 1 RuneX in your wallet to claim.</p>
+          )}
+          {starterMsg && (
+            <p className={`text-xs ${starterMsg.startsWith("Starter") ? "text-green-400" : "text-red-400"}`}>{starterMsg}</p>
+          )}
         </div>
       )}
     </div>

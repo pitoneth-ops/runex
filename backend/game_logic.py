@@ -252,6 +252,7 @@ def char_to_dict(char, bank_boost_pct: int = 0, skill_bonus_pct: float = 0.0) ->
             "speed":   char.stat_speed   or 45,
         },
         "primary_stat": PRIMARY_STAT.get(char.class_type, "attack"),
+        "is_starter":   bool(getattr(char, "is_starter", False)),
     }
 
 

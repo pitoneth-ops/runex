@@ -54,6 +54,7 @@ export interface Character {
   obtained_at: string;
   stats: CharStats;
   primary_stat: string;
+  is_starter: boolean;
 }
 
 export interface Skills {

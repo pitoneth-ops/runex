@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../store";
 import { openBox, getPlayer, claimStarterMiner } from "../api";
+import { payRunex } from "../solana";
 import type { Character } from "../api";
 import { OsrsSprite, OsrsIcon } from "../components/OsrsSprite";
 import { CHAR_SPRITES, ARMOR_ICONS, CHEST_SPRITES, RUNEX_ICON } from "../sprites";
@@ -119,8 +120,19 @@ export default function Mint() {
     setError("");
     setPhase("shaking");
 
-    // fire API immediately; animation plays in parallel
-    openBox(wallet)
+    // 1. Send RuneX on-chain → treasury, get signature
+    let txSig: string;
+    try {
+      txSig = await payRunex(BOX_COST);
+    } catch (e: unknown) {
+      const msg = (e as Error)?.message ?? "Transaction failed";
+      setError(msg.includes("rejected") ? "Transaction cancelled." : `Wallet error: ${msg}`);
+      setPhase("idle");
+      return;
+    }
+
+    // 2. Backend verifies tx and mints the character
+    openBox(wallet, txSig)
       .then(res => getPlayer(wallet).then(updated => { setPlayer(updated); return res; }))
       .then(res => { pendingResult.current = res.character; })
       .catch(e => {

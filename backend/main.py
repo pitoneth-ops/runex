@@ -55,12 +55,14 @@ app.add_middleware(
 )
 
 
-# ── On-chain RuneX sync ───────────────────────────────────────────────────────
-_RUNEX_MINT  = "6AVAUKa9uxQpruHZUinFECpXEh1usRVtzQWK8N2wpump"
-_SOLANA_RPC  = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
+# ── On-chain RuneX ────────────────────────────────────────────────────────────
+_RUNEX_MINT      = "6AVAUKa9uxQpruHZUinFECpXEh1usRVtzQWK8N2wpump"
+_TREASURY_WALLET = "2yeGpBaCFF8Q4jNFEmncL677wxjKaDHFnr7v5YGVX2T6"
+_SOLANA_RPC      = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
+
 
 def _get_on_chain_runex(wallet: str) -> int:
-    """Return wallet's on-chain RuneX balance (integer units). Returns -1 on RPC failure."""
+    """Return wallet's on-chain RuneX balance as a whole-unit integer. -1 on failure."""
     try:
         resp = _requests.post(_SOLANA_RPC, json={
             "jsonrpc": "2.0", "id": 1,
@@ -73,15 +75,53 @@ def _get_on_chain_runex(wallet: str) -> int:
         ui = accounts[0]["account"]["data"]["parsed"]["info"]["tokenAmount"]["uiAmount"]
         return int(ui or 0)
     except Exception:
-        return -1   # RPC unavailable — keep stored value
+        return -1
 
 
 def _sync_runex(player: Player, db: Session) -> None:
-    """Fetch on-chain balance and update player.runex if RPC succeeds."""
+    """Called only on auth — syncs on-chain balance to DB."""
     bal = _get_on_chain_runex(player.wallet)
     if bal >= 0 and bal != (player.runex or 0):
         player.runex = bal
         db.commit()
+
+
+def _verify_runex_tx(from_wallet: str, signature: str, min_ui: float) -> bool:
+    """
+    Verify that `signature` is a confirmed on-chain tx where the treasury wallet
+    received at least `min_ui` whole units of RuneX from `from_wallet`.
+    """
+    try:
+        resp = _requests.post(_SOLANA_RPC, json={
+            "jsonrpc": "2.0", "id": 1,
+            "method": "getTransaction",
+            "params": [signature, {"encoding": "jsonParsed", "maxSupportedTransactionVersion": 0}],
+        }, timeout=10)
+        tx = resp.json().get("result")
+        if not tx or (tx.get("meta") or {}).get("err"):
+            return False
+
+        pre  = {b["accountIndex"]: b for b in tx["meta"].get("preTokenBalances",  [])}
+        post = {b["accountIndex"]: b for b in tx["meta"].get("postTokenBalances", [])}
+
+        for idx, pb in post.items():
+            if pb.get("mint") != _RUNEX_MINT:
+                continue
+            if pb.get("owner") != _TREASURY_WALLET:
+                continue
+            pre_ui  = float((pre.get(idx) or {}).get("uiTokenAmount", {}).get("uiAmount") or 0)
+            post_ui = float(pb["uiTokenAmount"].get("uiAmount") or 0)
+            if post_ui - pre_ui >= min_ui:
+                return True
+        return False
+    except Exception:
+        return False
+
+
+def _tx_already_used(signature: str, db: Session) -> bool:
+    return db.query(Transaction).filter(
+        Transaction.description == f"tx:{signature}"
+    ).first() is not None
 
 
 def _migrate(stmt: str):
@@ -225,7 +265,7 @@ def auth_wallet(body: AuthBody, db: Session = Depends(get_db)):
     if not _verify_solana_sig(body.wallet, body.message, body.signature):
         raise HTTPException(401, "Signature invalid")
 
-    # 3. Create player on first login, then return full state
+    # 3. Create player on first login, sync on-chain RuneX, return full state
     p = db.query(Player).filter(Player.wallet == body.wallet).first()
     if not p:
         p = Player(wallet=body.wallet, tokens=0)
@@ -233,6 +273,7 @@ def auth_wallet(body: AuthBody, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(p)
 
+    _sync_runex(p, db)
     return get_player(body.wallet, db)
 
 
@@ -452,7 +493,6 @@ def get_player(wallet: str, db: Session = Depends(get_db)):
     if staked_until is not None and staked_until.tzinfo is None:
         staked_until = staked_until.replace(tzinfo=timezone.utc)
 
-    _sync_runex(p, db)
     bank_boost = _bank_boost_pct(p)
     return {
         "wallet":          p.wallet,
@@ -479,21 +519,29 @@ def get_player(wallet: str, db: Session = Depends(get_db)):
 
 # ── Box ───────────────────────────────────────────────────────────────────────
 
+class OpenBoxBody(BaseModel):
+    tx_signature: str
+
+
 @app.post("/player/{wallet}/box/open")
-def open_box_endpoint(wallet: str, db: Session = Depends(get_db)):
+def open_box_endpoint(wallet: str, body: OpenBoxBody, db: Session = Depends(get_db)):
     player = _get_player(wallet, db)
-    result = open_box(player)
-    if "error" in result:
-        raise HTTPException(400, result["error"])
+
+    if _tx_already_used(body.tx_signature, db):
+        raise HTTPException(400, "Transaction already used")
+    if not _verify_runex_tx(player.wallet, body.tx_signature, BOX_COST_RUNEX):
+        raise HTTPException(400, "RuneX transaction invalid or unconfirmed — send exactly 50,000 RuneX to the treasury first")
 
     now        = datetime.now(timezone.utc)
-    expires_at = now + timedelta(days=result["expires_days"])
+    rarity     = roll_rarity()
+    class_type = roll_class()
+    expires_at = now + timedelta(days=EXPIRY_DAYS[rarity])
 
-    s = roll_stats(result["class_type"], result["rarity"])
+    s = roll_stats(class_type, rarity)
     char = Character(
         player_id    = player.id,
-        class_type   = result["class_type"],
-        rarity       = result["rarity"],
+        class_type   = class_type,
+        rarity       = rarity,
         expires_at   = expires_at,
         obtained_at  = now,
         stat_attack  = s["attack"],
@@ -505,7 +553,7 @@ def open_box_endpoint(wallet: str, db: Session = Depends(get_db)):
     )
     db.add(char)
     db.flush()
-    _log_tx(player.id, "char_mint", f"Minted {result['rarity']} {result['class_type']}", 0, db)
+    _log_tx(player.id, "char_mint", f"tx:{body.tx_signature}", 0, db)
     db.commit()
     db.refresh(char)
 
@@ -1126,7 +1174,8 @@ def _br_fight(fight_num: int, p_class: str, p_stats: dict,
 
 
 class BattleRoyaleBody(BaseModel):
-    hero_id: int
+    hero_id:      int
+    tx_signature: str
 
 
 @app.post("/player/{wallet}/claim-starter-miner")
@@ -1174,11 +1223,13 @@ def battle_royale(wallet: str, body: BattleRoyaleBody, db: Session = Depends(get
     hero_level = min(50, int((hero.total_runex_earned or 0) / 10_000))
     if hero_level < BR_LEVEL_NEEDED:
         raise HTTPException(400, f"Hero must be level {BR_LEVEL_NEEDED} ({hero.total_runex_earned:,} / 100,000 RuneX earned)")
-    if (player.runex or 0) < BR_ENTRY_COST:
-        raise HTTPException(400, f"Need {BR_ENTRY_COST:,} RuneX to enter Battle Royale")
 
-    player.runex = (player.runex or 0) - BR_ENTRY_COST
-    _log_tx(player.id, "battle_royale", f"Entered Battle Royale with {hero.rarity} {hero.hero_class} (Lv.{hero_level})", -BR_ENTRY_COST, db)
+    if _tx_already_used(body.tx_signature, db):
+        raise HTTPException(400, "Transaction already used")
+    if not _verify_runex_tx(player.wallet, body.tx_signature, BR_ENTRY_COST):
+        raise HTTPException(400, "RuneX transaction invalid or unconfirmed — send 100,000 RuneX to the treasury first")
+
+    _log_tx(player.id, "battle_royale", f"tx:{body.tx_signature}", -BR_ENTRY_COST, db)
 
     p_stats = {
         "attack": hero.stat_attack or 0, "defense": hero.stat_defense or 0,

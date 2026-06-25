@@ -115,8 +115,8 @@ export const authWallet = (wallet: string, signature: string, message: string) =
 export const getPlayer = (wallet: string) =>
   api.get<Player>(`/player/${wallet}`).then(r => r.data);
 
-export const openBox = (wallet: string) =>
-  api.post<{ ok: boolean; character: Character; tokens: number }>(`/player/${wallet}/box/open`).then(r => r.data);
+export const openBox = (wallet: string, txSignature: string) =>
+  api.post<{ ok: boolean; character: Character; tokens: number }>(`/player/${wallet}/box/open`, { tx_signature: txSignature }).then(r => r.data);
 
 export const stakeChar = (wallet: string, charId: number) =>
   api.post<{ ok: boolean; character: Character }>(`/player/${wallet}/characters/${charId}/stake`).then(r => r.data);
@@ -229,8 +229,8 @@ export interface BRResult {
   runex: number;
 }
 
-export const battleRoyale = (wallet: string, heroId: number) =>
-  api.post<BRResult>(`/player/${wallet}/battle-royale`, { hero_id: heroId }).then(r => r.data);
+export const battleRoyale = (wallet: string, heroId: number, txSignature: string) =>
+  api.post<BRResult>(`/player/${wallet}/battle-royale`, { hero_id: heroId, tx_signature: txSignature }).then(r => r.data);
 
 export const claimStarterMiner = (wallet: string) =>
   api.post<{ ok: boolean; character: Character }>(`/player/${wallet}/claim-starter-miner`).then(r => r.data);

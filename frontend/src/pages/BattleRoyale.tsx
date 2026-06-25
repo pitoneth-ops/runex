@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useGameStore } from "../store";
 import { getPlayer, battleRoyale } from "../api";
+import { payRunex } from "../solana";
 import type { HeroX, BRFight, BRResult } from "../api";
 import { OsrsSprite } from "../components/OsrsSprite";
 import { HERO_SPRITES, RUNEX_ICON } from "../sprites";
@@ -202,7 +203,8 @@ export default function BattleRoyale() {
     setOppHpPct(100);
 
     try {
-      const res = await battleRoyale(wallet, selectedHero.id);
+      const txSig = await payRunex(ENTRY_COST);
+      const res = await battleRoyale(wallet, selectedHero.id, txSig);
       setResult(res);
       await getPlayer(wallet).then(p => setPlayer(p));
       setLoading(false);
@@ -211,7 +213,8 @@ export default function BattleRoyale() {
       setPageState("done");
     } catch (e: any) {
       setLoading(false);
-      alert(e?.response?.data?.detail ?? "Erro");
+      const msg = e?.message ?? e?.response?.data?.detail ?? "Error";
+      alert(msg.includes("rejected") ? "Transaction cancelled." : msg);
     }
   }
 

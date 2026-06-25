@@ -54,11 +54,22 @@ app.add_middleware(
 )
 
 
+def _migrate(stmt: str):
+    """Run a single DDL statement in its own connection so a failure never aborts other migrations."""
+    try:
+        with engine.connect() as c:
+            c.execute(text(stmt))
+            c.commit()
+    except Exception:
+        pass
+
+
 def create_tables():
     Base.metadata.create_all(bind=engine)
-    # Add skill columns to existing DBs without recreating
-    # Player skill columns
-    player_cols = [
+    # Add columns to existing DBs without recreating tables.
+    # Each migration uses its own connection — a PostgreSQL failure in one
+    # aborts only that transaction and never blocks the ones that follow.
+    for col, typ, default in [
         ("skill_attack",      "REAL",    1.0),
         ("skill_ranged",      "REAL",    1.0),
         ("skill_magic",       "REAL",    1.0),
@@ -68,16 +79,22 @@ def create_tables():
         ("runex",             "INTEGER", 0),
         ("staked_gold",       "INTEGER", 0),
         ("staked_gold_until", "TEXT",    "NULL"),
-    ]
-    char_cols = [
+        ("starter_miner_claimed", "BOOLEAN", "FALSE"),
+    ]:
+        _migrate(f"ALTER TABLE players ADD COLUMN {col} {typ} DEFAULT {default}")
+
+    for col, typ, default in [
         ("stat_attack",  "INTEGER", 0),
         ("stat_defense", "INTEGER", 0),
         ("stat_hp",      "INTEGER", 0),
         ("stat_magic",   "INTEGER", 0),
         ("stat_ranged",  "INTEGER", 0),
         ("stat_speed",   "INTEGER", 0),
-    ]
-    hero_cols = [
+        ("is_starter",   "BOOLEAN", "FALSE"),
+    ]:
+        _migrate(f"ALTER TABLE characters ADD COLUMN {col} {typ} DEFAULT {default}")
+
+    for col, typ, default in [
         ("stat_attack",         "INTEGER", 0),
         ("stat_defense",        "INTEGER", 0),
         ("stat_hp",             "INTEGER", 0),
@@ -87,59 +104,21 @@ def create_tables():
         ("last_battle_date",    "TEXT",    "NULL"),
         ("best_phase",          "INTEGER", 0),
         ("total_runex_earned",  "INTEGER", 0),
-    ]
-    with engine.connect() as conn:
-        for col, typ, default in player_cols:
-            try:
-                conn.execute(text(f"ALTER TABLE players ADD COLUMN {col} {typ} DEFAULT {default}"))
-                conn.commit()
-            except Exception:
-                pass
-        for col, typ, default in char_cols:
-            try:
-                conn.execute(text(f"ALTER TABLE characters ADD COLUMN {col} {typ} DEFAULT {default}"))
-                conn.commit()
-            except Exception:
-                pass
-        for col, typ, default in hero_cols:
-            try:
-                conn.execute(text(f"ALTER TABLE heroes ADD COLUMN {col} {typ} DEFAULT {default}"))
-                conn.commit()
-            except Exception:
-                pass
-        # hero item equipping
-        try:
-            conn.execute(text("ALTER TABLE items ADD COLUMN hero_equipped_on INTEGER REFERENCES heroes(id)"))
-            conn.commit()
-        except Exception:
-            pass
-        # equipment item columns
-        equip_cols = [
-            ("item_slot",       "TEXT",    "NULL"),
-            ("item_rarity",     "TEXT",    "NULL"),
-            ("item_name",       "TEXT",    "NULL"),
-            ("stat_vitalidade", "INTEGER", 0),
-            ("stat_atk",        "INTEGER", 0),
-            ("stat_destreza",   "INTEGER", 0),
-            ("stat_magia",      "INTEGER", 0),
-        ]
-        for col, typ, default in equip_cols:
-            try:
-                conn.execute(text(f"ALTER TABLE items ADD COLUMN {col} {typ} DEFAULT {default}"))
-                conn.commit()
-            except Exception:
-                pass
-        # starter miner columns
-        try:
-            conn.execute(text("ALTER TABLE players ADD COLUMN starter_miner_claimed BOOLEAN DEFAULT FALSE"))
-            conn.commit()
-        except Exception:
-            pass
-        try:
-            conn.execute(text("ALTER TABLE characters ADD COLUMN is_starter BOOLEAN DEFAULT FALSE"))
-            conn.commit()
-        except Exception:
-            pass
+    ]:
+        _migrate(f"ALTER TABLE heroes ADD COLUMN {col} {typ} DEFAULT {default}")
+
+    _migrate("ALTER TABLE items ADD COLUMN hero_equipped_on INTEGER REFERENCES heroes(id)")
+
+    for col, typ, default in [
+        ("item_slot",       "TEXT",    "NULL"),
+        ("item_rarity",     "TEXT",    "NULL"),
+        ("item_name",       "TEXT",    "NULL"),
+        ("stat_vitalidade", "INTEGER", 0),
+        ("stat_atk",        "INTEGER", 0),
+        ("stat_destreza",   "INTEGER", 0),
+        ("stat_magia",      "INTEGER", 0),
+    ]:
+        _migrate(f"ALTER TABLE items ADD COLUMN {col} {typ} DEFAULT {default}")
 
     # Backfill stats for characters that don't have them yet
     _backfill_char_stats()

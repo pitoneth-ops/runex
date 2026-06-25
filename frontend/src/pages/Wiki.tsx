@@ -4,7 +4,7 @@ import { SKILL_ICONS, SKILL_CAPE_SPRITES, RUNEX_ICON, GAME_ICONS, EQUIP_ITEM_SPR
 
 const W = "https://oldschool.runescape.wiki/w/Special:FilePath";
 
-type Tab = "herox" | "skills" | "items" | "economy" | "royale";
+type Tab = "herox" | "skills" | "items" | "economy" | "royale" | "currencies";
 
 const PHASES = [
   { n: 1, name: "Goblin Chieftain", weak: "Berserker", wColor: "#ef4444", runex: "500",     drop: "3%",  sprite: [`${W}/Goblin_chathead.png`] },
@@ -79,11 +79,12 @@ export default function Wiki() {
   const [tab, setTab] = useState<Tab>("herox");
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: "herox",   label: "⚔ HeroX"   },
-    { id: "skills",  label: "📊 Skills"  },
-    { id: "items",   label: "🛡 Items"   },
-    { id: "economy", label: "💰 Economy" },
-    { id: "royale",  label: "👑 Royale"  },
+    { id: "herox",      label: "⚔ HeroX"    },
+    { id: "skills",     label: "📊 Skills"   },
+    { id: "items",      label: "🛡 Items"    },
+    { id: "economy",    label: "💰 Economy"  },
+    { id: "royale",     label: "👑 Royale"   },
+    { id: "currencies", label: "💎 Moedas"   },
   ];
 
   return (
@@ -121,7 +122,7 @@ export default function Wiki() {
           <div className="space-y-5">
             <div>
               <p style={sectionTitle}>What is HeroX?</p>
-              <p style={bodyText}>HeroX are powerful combat heroes you mint with Gold. Each hero has a class and rarity that determine their stats. Send them to battle monsters across 5 phases to earn RuneX — and possibly drop equipment items.</p>
+              <p style={bodyText}>HeroX are powerful combat heroes you mint with Gold. Each hero has a class and rarity that determine their stats. Send them to battle monsters across 5 phases to earn <strong style={{ color: "#fca5a5" }}>wRuneX</strong> — and possibly drop equipment items.</p>
               <div className="flex items-center gap-2 flex-wrap mt-3">
                 <FlowStep icon="💰" label="Spend Gold" sub="100,000 Gold" />
                 <FlowArrow />
@@ -129,7 +130,7 @@ export default function Wiki() {
                 <FlowArrow />
                 <FlowStep icon="⚔" label="Battle Phases" sub="Up to 5" />
                 <FlowArrow />
-                <FlowStep icon="💎" label="Earn RuneX" sub="Per phase" />
+                <FlowStep icon="💎" label="Earn wRuneX" sub="Per phase" />
               </div>
             </div>
 
@@ -184,7 +185,7 @@ export default function Wiki() {
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <p style={{ color: "#ff6060", fontWeight: 700, fontSize: "0.75rem" }}>+{ph.runex}</p>
-                      <p style={{ color: "#6b4f10", fontSize: "0.6rem" }}>RuneX · {ph.drop} item</p>
+                      <p style={{ color: "#6b4f10", fontSize: "0.6rem" }}>wRuneX · {ph.drop} item</p>
                     </div>
                   </div>
                 ))}
@@ -447,9 +448,9 @@ export default function Wiki() {
               <p style={sectionTitle}>Prizes</p>
               <div style={{ ...panel, padding: 0, overflow: "hidden" }}>
                 {[
-                  { result: "Survive Fight 1",  prize: "Entry fee lost",          col: "#ef4444",  note: "No consolation prize" },
-                  { result: "Survive Fights 1–6", prize: "Entry fee lost",         col: "#ef4444",  note: "Must win ALL 7 to claim prize" },
-                  { result: "Win all 7 fights", prize: "+1,000,000 RuneX",        col: "#fbbf24",  note: "Grand prize awarded immediately" },
+                  { result: "Survive Fight 1",  prize: "Entry fee lost",           col: "#ef4444",  note: "No consolation prize" },
+                  { result: "Survive Fights 1–6", prize: "Entry fee lost",          col: "#ef4444",  note: "Must win ALL 7 to claim prize" },
+                  { result: "Win all 7 fights", prize: "+1,000,000 wRuneX",       col: "#fbbf24",  note: "Prize credited as in-game wRuneX — withdraw via header button" },
                 ].map((row, i, arr) => (
                   <div key={row.result} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: i < arr.length - 1 ? "1px solid rgba(107,79,16,0.3)" : "none" }}>
                     <div style={{ flex: 1 }}>
@@ -469,9 +470,66 @@ export default function Wiki() {
               <p>❤ Prioritize HP gear for fights 5–7 where Legendary opponents hit hardest.</p>
               <p>⚔ The hero's class does NOT need to match opponents — pure stat power wins.</p>
               <p>🔁 No cooldown — you can re-enter immediately after a loss (if you have 100k RuneX).</p>
-              <p>💎 Save RuneX from multiple HeroX wins before attempting the Royale.</p>
+              <p>💎 Save wRuneX from multiple HeroX wins before attempting the Royale.</p>
+              <p>🔄 Won the Royale? Withdraw your 1M wRuneX via the header button.</p>
             </div>
 
+          </div>
+        )}
+
+        {/* ── CURRENCIES TAB ── */}
+        {tab === "currencies" && (
+          <div className="space-y-5">
+            <div>
+              <p style={sectionTitle}>RuneX vs wRuneX</p>
+              <p style={{ ...bodyText, marginBottom: 12 }}>RuneX has two forms: the real on-chain token and an in-game wrapped version. Understanding the difference is key to managing your balance.</p>
+              <div style={{ ...panel, padding: 0, overflow: "hidden" }}>
+                {[
+                  { label: "RuneX",   sub: "On-chain · Phantom wallet", color: "#ff6060", badge: "Real token",  points: ["Solana SPL Token 2022", "Lives in your Phantom wallet", "Spent to open Mint boxes (50,000)", "Spent to enter Battle Royale (100,000)", "Visible in Phantom as 'RuneX'"] },
+                  { label: "wRuneX",  sub: "In-game · earned in RuneX", color: "#fca5a5", badge: "In-game",     points: ["Earned from HeroX battle phases", "Earned from Shop chests (with Gold)", "Won as Battle Royale prize (1,000,000)", "Withdraw → converts to real RuneX on-chain", "Shown as 💎 wRX in the top bar"] },
+                ].map((item, i, arr) => (
+                  <div key={item.label} style={{ padding: "14px 16px", borderBottom: i < arr.length - 1 ? "1px solid rgba(107,79,16,0.3)" : "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                      <div>
+                        <p style={{ fontFamily: "'Cinzel',serif", color: item.color, fontWeight: 900, fontSize: "0.9rem" }}>{item.label}</p>
+                        <p style={{ color: "#6b4f10", fontSize: "0.62rem" }}>{item.sub}</p>
+                      </div>
+                      <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: "0.62rem", fontWeight: 700, border: `1px solid ${item.color}44`, background: `${item.color}11`, color: item.color }}>{item.badge}</span>
+                    </div>
+                    <ul style={{ color: "#a08040", fontSize: "0.68rem", lineHeight: 1.9, paddingLeft: 14 }}>
+                      {item.points.map(p => <li key={p}>• {p}</li>)}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p style={sectionTitle}>How to Withdraw</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <FlowStep icon="⚔" label="Play &amp; Earn" sub="Battles · Chests" />
+                <FlowArrow />
+                <FlowStep icon="💎" label="Accumulate" sub="wRuneX balance" />
+                <FlowArrow />
+                <FlowStep icon="🔝" label="Header Button" sub="💎 wRX" />
+                <FlowArrow />
+                <FlowStep icon="👛" label="Phantom" sub="Real RuneX sent" />
+              </div>
+              <div style={{ ...panel, fontSize: "0.7rem", color: "#a08040", lineHeight: 1.8, marginTop: 10 }}>
+                <p>1. Click the <strong style={{ color: "#fca5a5" }}>💎 wRX</strong> button in the top bar</p>
+                <p>2. Enter the amount you want to withdraw (minimum 100 wRuneX)</p>
+                <p>3. Click <strong style={{ color: "#4ade80" }}>Swap →</strong> — the treasury sends real RuneX to your Phantom wallet</p>
+                <p>4. Your wRuneX balance decreases and RuneX appears in Phantom within seconds</p>
+              </div>
+            </div>
+
+            <div style={{ ...panel, fontSize: "0.7rem", color: "#a08040", lineHeight: 1.8, border: "1px solid rgba(255,204,0,0.2)", background: "rgba(255,204,0,0.03)" }}>
+              <p style={{ fontFamily: "'Cinzel',serif", color: "#ffcc00", fontWeight: 700, fontSize: "0.75rem", marginBottom: 6 }}>Important Notes</p>
+              <p>💳 Minimum withdraw: <strong style={{ color: "#ffe8a0" }}>100 wRuneX</strong></p>
+              <p>⏱ Withdrawals are processed on-chain — may take a few seconds to appear in Phantom</p>
+              <p>📊 Your on-chain RuneX balance is shown in the Phantom app — check there after withdrawal</p>
+              <p>🔒 wRuneX cannot be transferred between players — only withdrawn to your own wallet</p>
+            </div>
           </div>
         )}
 
@@ -479,17 +537,28 @@ export default function Wiki() {
         {tab === "economy" && (
           <div className="space-y-5">
             <div>
-              <p style={sectionTitle}>Two Currencies</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div style={{ ...panel, textAlign: "center", border: "1px solid rgba(255,204,0,0.25)" }}>
-                  <OsrsSprite srcs={GAME_ICONS.gold} fallback="🪙" size={40} pixelated={false} />
-                  <p style={{ fontFamily: "'Cinzel',serif", color: "#ffcc00", fontWeight: 700, marginTop: 6, fontSize: "0.85rem" }}>Gold (gp)</p>
-                  <p style={{ color: "#7a5820", fontSize: "0.68rem", marginTop: 4, lineHeight: 1.6 }}>Earned by staking characters. Used to open chests, mint characters and HeroX.</p>
+              <p style={sectionTitle}>Three Currencies</p>
+              <div className="space-y-2">
+                <div style={{ ...panel, display: "flex", alignItems: "center", gap: 12, border: "1px solid rgba(255,204,0,0.25)" }}>
+                  <OsrsSprite srcs={GAME_ICONS.gold} fallback="🪙" size={36} pixelated={false} />
+                  <div>
+                    <p style={{ fontFamily: "'Cinzel',serif", color: "#ffcc00", fontWeight: 700, fontSize: "0.85rem" }}>Gold (gp)</p>
+                    <p style={{ color: "#7a5820", fontSize: "0.68rem", marginTop: 2, lineHeight: 1.6 }}>Off-chain. Earned staking characters. Spent on chests, HeroX mint.</p>
+                  </div>
                 </div>
-                <div style={{ ...panel, textAlign: "center", border: "1px solid rgba(255,96,96,0.25)" }}>
-                  <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={40} />
-                  <p style={{ fontFamily: "'Cinzel',serif", color: "#ff6060", fontWeight: 700, marginTop: 6, fontSize: "0.85rem" }}>RuneX</p>
-                  <p style={{ color: "#7a5820", fontSize: "0.68rem", marginTop: 4, lineHeight: 1.6 }}>Earned from HeroX battles and chests. Required to mint staker characters (50k each).</p>
+                <div style={{ ...panel, display: "flex", alignItems: "center", gap: 12, border: "1px solid rgba(255,96,96,0.25)" }}>
+                  <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={36} />
+                  <div>
+                    <p style={{ fontFamily: "'Cinzel',serif", color: "#ff6060", fontWeight: 700, fontSize: "0.85rem" }}>RuneX (on-chain)</p>
+                    <p style={{ color: "#7a5820", fontSize: "0.68rem", marginTop: 2, lineHeight: 1.6 }}>Real SPL token on Solana. Lives in Phantom. Spent to open Mint boxes (50k) or enter Battle Royale (100k). Check header for wallet balance.</p>
+                  </div>
+                </div>
+                <div style={{ ...panel, display: "flex", alignItems: "center", gap: 12, border: "1px solid rgba(255,96,96,0.15)", background: "rgba(255,96,96,0.04)" }}>
+                  <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={36} />
+                  <div>
+                    <p style={{ fontFamily: "'Cinzel',serif", color: "#fca5a5", fontWeight: 700, fontSize: "0.85rem" }}>wRuneX (in-game)</p>
+                    <p style={{ color: "#7a5820", fontSize: "0.68rem", marginTop: 2, lineHeight: 1.6 }}>Earned in-game from HeroX battles, chests and Battle Royale wins. Withdraw via the <strong style={{ color: "#fca5a5" }}>💎 wRX</strong> button in the top bar → converts to real RuneX sent to your wallet.</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -501,9 +570,9 @@ export default function Wiki() {
                 <FlowArrow />
                 <FlowStep icon="🪙" label="Open Chests" sub="Or Mint HeroX" />
                 <FlowArrow />
-                <FlowStep icon="💎" label="Earn RuneX" sub="Battles + Chests" />
+                <FlowStep icon="💎" label="Earn wRuneX" sub="Battles + Chests" />
                 <FlowArrow />
-                <FlowStep icon="🧍" label="Mint Stakers" sub="50k RuneX each" />
+                <FlowStep icon="🔄" label="Withdraw" sub="wRX → RuneX" />
               </div>
             </div>
 
@@ -511,15 +580,15 @@ export default function Wiki() {
               <p style={sectionTitle}>Shop — Chests</p>
               <div style={{ ...panel, padding: 0, overflow: "hidden" }}>
                 {[
-                  { name: "RuneX Chest",  cost: "5,000 Gold", runex: "100 ~ 10,000 RuneX", item: "None",            note: "Best RuneX per Gold on average." },
-                  { name: "Item Chest",   cost: "8,000 Gold", runex: "50 ~ 2,000 RuneX",   item: "5% Equipment Drop", note: "Trade RuneX range for a gear shot." },
+                  { name: "RuneX Chest",  cost: "5,000 Gold", runex: "100 ~ 10,000 wRuneX", item: "None",            note: "Best wRuneX per Gold on average." },
+                  { name: "Item Chest",   cost: "8,000 Gold", runex: "50 ~ 2,000 wRuneX",   item: "5% Equipment Drop", note: "Trade wRuneX range for a gear shot." },
                 ].map((c, i) => (
                   <div key={c.name} style={{ padding: "12px 14px", borderBottom: i === 0 ? "1px solid rgba(107,79,16,0.3)" : "none" }}>
                     <div className="flex justify-between items-start">
                       <div>
                         <p style={{ fontFamily: "'Cinzel',serif", color: "#ffcc00", fontWeight: 700, fontSize: "0.8rem" }}>{c.name}</p>
                         <p style={{ color: "#ffcc00", fontSize: "0.7rem", marginTop: 2 }}>Cost: {c.cost}</p>
-                        <p style={{ color: "#ff6060", fontSize: "0.7rem" }}>RuneX: {c.runex}</p>
+                        <p style={{ color: "#ff6060", fontSize: "0.7rem" }}>wRuneX: {c.runex}</p>
                         <p style={{ color: "#6dde6d", fontSize: "0.7rem" }}>Item: {c.item}</p>
                       </div>
                     </div>
@@ -532,9 +601,9 @@ export default function Wiki() {
             <div>
               <p style={sectionTitle}>Character Minting</p>
               <div style={{ ...panel, fontSize: "0.72rem", color: "#a08040", lineHeight: 1.8 }}>
-                <p>📦 <strong style={{ color: "#ffe8a0" }}>Mint Box</strong> — random character (archer/warrior/mage/miner), costs Gold</p>
+                <p>📦 <strong style={{ color: "#ffe8a0" }}>Mint Box</strong> — random character (archer/warrior/mage/miner), costs 50,000 real RuneX (on-chain)</p>
                 <p>⚔ <strong style={{ color: "#ffe8a0" }}>HeroX Mint</strong> — 100,000 Gold → random hero class + rarity</p>
-                <p>💎 <strong style={{ color: "#ff6060" }}>Staker Mint</strong> — 50,000 RuneX → special staker character with boosted income</p>
+                <p>⛏ <strong style={{ color: "#60a5fa" }}>Free Starter Miner</strong> — claim once if you hold ≥1 RuneX in Phantom. 100 gp/day, no upgrades.</p>
                 <p>Characters expire after their staking period — claim or unstake before then!</p>
               </div>
             </div>

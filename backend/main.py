@@ -89,39 +89,152 @@ def _sync_runex(player: Player, db: Session) -> None:
 def _verify_runex_tx(from_wallet: str, signature: str, min_ui: float) -> bool:
     """
     Verify that `signature` is a confirmed on-chain tx where the treasury wallet
-    received at least `min_ui` whole units of RuneX from `from_wallet`.
+    received at least `min_ui` whole units of RuneX. Retries up to 6x with 3s delay
+    to handle RPC indexing lag after confirmation.
     """
-    try:
-        resp = _requests.post(_SOLANA_RPC, json={
-            "jsonrpc": "2.0", "id": 1,
-            "method": "getTransaction",
-            "params": [signature, {"encoding": "jsonParsed", "maxSupportedTransactionVersion": 0}],
-        }, timeout=10)
-        tx = resp.json().get("result")
-        if not tx or (tx.get("meta") or {}).get("err"):
+    import time
+    for attempt in range(6):
+        try:
+            resp = _requests.post(_SOLANA_RPC, json={
+                "jsonrpc": "2.0", "id": 1,
+                "method": "getTransaction",
+                "params": [signature, {"encoding": "jsonParsed", "maxSupportedTransactionVersion": 0}],
+            }, timeout=10)
+            tx = resp.json().get("result")
+            if tx is None:
+                time.sleep(3)
+                continue
+            if (tx.get("meta") or {}).get("err"):
+                return False  # tx failed on-chain — no point retrying
+
+            pre  = {b["accountIndex"]: b for b in tx["meta"].get("preTokenBalances",  [])}
+            post = {b["accountIndex"]: b for b in tx["meta"].get("postTokenBalances", [])}
+
+            for idx, pb in post.items():
+                if pb.get("mint") != _RUNEX_MINT:
+                    continue
+                if pb.get("owner") != _TREASURY_WALLET:
+                    continue
+                pre_ui  = float((pre.get(idx) or {}).get("uiTokenAmount", {}).get("uiAmount") or 0)
+                post_ui = float(pb["uiTokenAmount"].get("uiAmount") or 0)
+                if post_ui - pre_ui >= min_ui:
+                    return True
             return False
-
-        pre  = {b["accountIndex"]: b for b in tx["meta"].get("preTokenBalances",  [])}
-        post = {b["accountIndex"]: b for b in tx["meta"].get("postTokenBalances", [])}
-
-        for idx, pb in post.items():
-            if pb.get("mint") != _RUNEX_MINT:
-                continue
-            if pb.get("owner") != _TREASURY_WALLET:
-                continue
-            pre_ui  = float((pre.get(idx) or {}).get("uiTokenAmount", {}).get("uiAmount") or 0)
-            post_ui = float(pb["uiTokenAmount"].get("uiAmount") or 0)
-            if post_ui - pre_ui >= min_ui:
-                return True
-        return False
-    except Exception:
-        return False
+        except Exception:
+            time.sleep(3)
+    return False
 
 
 def _tx_already_used(signature: str, db: Session) -> bool:
     return db.query(Transaction).filter(
         Transaction.description == f"tx:{signature}"
     ).first() is not None
+
+
+def _send_runex_from_treasury(to_wallet: str, ui_amount: float) -> str:
+    """
+    Build, sign, and send a Token-2022 TransferChecked from the treasury ATA to
+    `to_wallet`'s ATA. Returns the on-chain tx signature.
+
+    Treasury private key comes from TREASURY_PRIVATE_KEY env var — a base58-encoded
+    Solana keypair (64 bytes: seed + pubkey) or just the 32-byte seed.
+    """
+    import struct, hashlib, base64
+    from nacl.signing import SigningKey as _SigningKey
+
+    sk_b58 = os.getenv("TREASURY_PRIVATE_KEY", "")
+    if not sk_b58:
+        raise ValueError("TREASURY_PRIVATE_KEY not configured")
+
+    raw_key = _base58.b58decode(sk_b58)
+    seed    = raw_key[:32]  # Solana keypair = seed(32) + pubkey(32); we only need seed
+    signer  = _SigningKey(seed)
+    treasury_pk = bytes(signer.verify_key)
+
+    # Safety: confirm derived pubkey matches the expected treasury address
+    if _base58.b58encode(treasury_pk).decode() != _TREASURY_WALLET:
+        raise ValueError("TREASURY_PRIVATE_KEY does not match the treasury wallet — double-check the key")
+
+    # Program IDs
+    TOKEN_2022  = _base58.b58decode("TokenzQdBNbLqP5VEhdkAS6EPULC3gwQ2Wr6ziJCq5b")
+    ASSOC_TOKEN = _base58.b58decode("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe8bSe")
+    SYSTEM_PROG = bytes(32)
+
+    mint_pk   = _base58.b58decode(_RUNEX_MINT)
+    player_pk = _base58.b58decode(to_wallet)
+    raw_amt   = int(round(ui_amount * 10 ** 6))  # RuneX has 6 decimals
+
+    def _find_ata(wallet: bytes, mint: bytes) -> bytes:
+        """Derive Token-2022 Associated Token Account via find_program_address."""
+        prefix = wallet + TOKEN_2022 + mint
+        for nonce in range(255, -1, -1):
+            candidate = hashlib.sha256(prefix + bytes([nonce]) + ASSOC_TOKEN + b"ProgramDerivedAddress").digest()
+            try:
+                VerifyKey(candidate)  # succeeds → on Ed25519 curve → not a valid PDA
+            except Exception:
+                return candidate      # off-curve → valid PDA
+        raise ValueError("ATA derivation failed")
+
+    source_ata = _find_ata(treasury_pk, mint_pk)
+    dest_ata   = _find_ata(player_pk,   mint_pk)
+
+    def _cu16(n: int) -> bytes:
+        """Solana compact-u16."""
+        if n <= 0x7f:
+            return bytes([n])
+        elif n <= 0x3fff:
+            return bytes([(n & 0x7f) | 0x80, (n >> 7) & 0x7f])
+        return bytes([(n & 0x7f) | 0x80, ((n >> 7) & 0x7f) | 0x80, (n >> 14) & 0x03])
+
+    # Accounts (ordered: writable+signed, writable+unsigned, readonly+unsigned)
+    # 0: treasury    — signer, writable
+    # 1: source_ata  — writable (treasury's RuneX ATA)
+    # 2: dest_ata    — writable (player's RuneX ATA)
+    # 3: player_pk   — readonly (ATA owner, needed by ASSOC_TOKEN_PROG)
+    # 4: mint_pk     — readonly
+    # 5: SYSTEM_PROG — readonly
+    # 6: TOKEN_2022  — readonly (transfer program)
+    # 7: ASSOC_TOKEN — readonly (ATA create program)
+    accounts = [treasury_pk, source_ata, dest_ata, player_pk, mint_pk, SYSTEM_PROG, TOKEN_2022, ASSOC_TOKEN]
+    header   = bytes([1, 0, 5])  # 1 signer, 0 readonly-signers, 5 readonly-unsigned
+
+    bh_resp = _requests.post(_SOLANA_RPC, json={
+        "jsonrpc": "2.0", "id": 1,
+        "method": "getLatestBlockhash",
+        "params": [{"commitment": "confirmed"}],
+    }, timeout=10).json()
+    blockhash = _base58.b58decode(bh_resp["result"]["value"]["blockhash"])
+
+    # Instruction 1 — CreateAssociatedTokenAccountIdempotent
+    #   Program idx 7; accounts: funder=0, ata=2, owner=3, mint=4, system=5, token_prog=6
+    #   Data: [1] = CreateIdempotent discriminator
+    ix_create = bytes([7]) + _cu16(6) + bytes([0, 2, 3, 4, 5, 6]) + _cu16(1) + bytes([1])
+
+    # Instruction 2 — TransferChecked (Token-2022)
+    #   Program idx 6; accounts: src=1, mint=4, dst=2, authority=0
+    #   Data: [12] + u64(amount_raw) + u8(decimals)
+    transfer_data = bytes([12]) + struct.pack("<Q", raw_amt) + bytes([6])
+    ix_transfer   = bytes([6]) + _cu16(4) + bytes([1, 4, 2, 0]) + _cu16(len(transfer_data)) + transfer_data
+
+    message = (
+        header
+        + _cu16(len(accounts)) + b"".join(accounts)
+        + blockhash
+        + _cu16(2) + ix_create + ix_transfer
+    )
+
+    sig      = bytes(signer.sign(message).signature)
+    tx_bytes = _cu16(1) + sig + message  # 1 signature
+
+    send_resp = _requests.post(_SOLANA_RPC, json={
+        "jsonrpc": "2.0", "id": 1,
+        "method": "sendTransaction",
+        "params": [base64.b64encode(tx_bytes).decode(), {"encoding": "base64", "maxRetries": 5}],
+    }, timeout=15).json()
+
+    if "error" in send_resp:
+        raise ValueError(f"RPC error: {send_resp['error'].get('message', send_resp['error'])}")
+    return send_resp["result"]
 
 
 def _migrate(stmt: str):
@@ -1276,6 +1389,41 @@ def battle_royale(wallet: str, body: BattleRoyaleBody, db: Session = Depends(get
         "tokens":      player.tokens,
         "runex":       player.runex or 0,
     }
+
+
+# ── RuneX Withdraw ───────────────────────────────────────────────────────────
+
+class WithdrawRunexBody(BaseModel):
+    amount: float  # whole-unit RuneX to withdraw (min 100)
+
+
+@app.post("/player/{wallet}/withdraw-runex")
+def withdraw_runex(wallet: str, body: WithdrawRunexBody, db: Session = Depends(get_db)):
+    player = db.query(Player).filter(Player.wallet == wallet).first()
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+    if body.amount < 100:
+        raise HTTPException(status_code=400, detail="Minimum withdraw is 100 RuneX")
+    player_runex = player.runex or 0
+    if player_runex < body.amount:
+        raise HTTPException(status_code=400, detail=f"Not enough RuneX (have {player_runex})")
+    if not os.getenv("TREASURY_PRIVATE_KEY"):
+        raise HTTPException(status_code=503, detail="Withdrawals not yet enabled — treasury key not configured")
+
+    try:
+        sig = _send_runex_from_treasury(wallet, body.amount)
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    player.runex = player_runex - int(body.amount)
+    db.add(Transaction(
+        wallet=wallet,
+        tx_type="withdraw_runex",
+        description=f"Withdrew {int(body.amount)} RuneX → {sig[:12]}…",
+        value=-int(body.amount),
+    ))
+    db.commit()
+    return {"ok": True, "signature": sig, "runex": player.runex}
 
 
 # ── Info ──────────────────────────────────────────────────────────────────────

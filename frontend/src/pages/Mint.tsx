@@ -131,7 +131,8 @@ export default function Mint() {
       return;
     }
 
-    // 2. Backend verifies tx and mints the character
+    // 2. Wait briefly for the RPC to index the confirmed tx, then call backend
+    await new Promise(r => setTimeout(r, 2000));
     openBox(wallet, txSig)
       .then(res => getPlayer(wallet).then(updated => { setPlayer(updated); return res; }))
       .then(res => { pendingResult.current = res.character; })

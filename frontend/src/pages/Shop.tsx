@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useGameStore } from "../store";
-import { buyRunexChest, buyItemChest, getPlayer } from "../api";
+import { buyRunexChest, buyItemChest, getPlayer, withdrawRunex } from "../api";
 import type { CharacterItem } from "../api";
 import { OsrsSprite } from "../components/OsrsSprite";
 import { CHEST_SPRITES, ITEM_CHEST_SPRITES, RUNEX_ICON, GAME_ICONS } from "../sprites";
@@ -129,6 +129,11 @@ export default function Shop() {
   const [item2,    setItem2]    = useState<CharacterItem | null>(null);
   const [error2,   setError2]   = useState("");
 
+  // Withdraw state
+  const [withdrawAmt,     setWithdrawAmt]     = useState("");
+  const [withdrawing,     setWithdrawing]     = useState(false);
+  const [withdrawMsg,     setWithdrawMsg]     = useState<{ ok: boolean; text: string } | null>(null);
+
   async function refreshPlayer() {
     if (!wallet) return;
     const p = await getPlayer(wallet);
@@ -166,6 +171,22 @@ export default function Shop() {
       setError2(d ?? "Error opening chest");
       setPhase2("idle");
     }
+  }
+
+  async function handleWithdraw() {
+    const amt = parseFloat(withdrawAmt);
+    if (!wallet || !amt || amt < 100 || withdrawing) return;
+    setWithdrawing(true);
+    setWithdrawMsg(null);
+    try {
+      const res = await withdrawRunex(wallet, amt);
+      await refreshPlayer();
+      setWithdrawMsg({ ok: true, text: `${amt.toLocaleString()} RuneX sent! Tx: ${res.signature.slice(0, 12)}…` });
+      setWithdrawAmt("");
+    } catch (e: unknown) {
+      const d = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setWithdrawMsg({ ok: false, text: d ?? "Withdraw failed" });
+    } finally { setWithdrawing(false); }
   }
 
   if (!wallet) return (
@@ -276,6 +297,43 @@ export default function Shop() {
           <p>🎁 Buy chests in the shop with Gold</p>
           <p>💎 Spend RuneX in Mint to unlock staker characters (50k RuneX)</p>
         </div>
+      </div>
+
+      {/* Withdraw RuneX */}
+      <div className="osrs-panel p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={20} />
+          <p className="font-black text-sm" style={{ fontFamily: "'Cinzel',serif", color: "#ff6060" }}>Withdraw RuneX</p>
+        </div>
+        <p className="text-xs" style={{ color: "#7a6030" }}>
+          Send in-game RuneX to your Solana wallet. Minimum 100 RuneX.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            min={100}
+            max={runex}
+            value={withdrawAmt}
+            onChange={e => setWithdrawAmt(e.target.value)}
+            placeholder="Amount (min 100)"
+            className="flex-1 rounded-xl px-3 py-2 text-sm font-bold"
+            style={{ background: "rgba(0,0,0,0.4)", border: "1px solid #6b4f10", color: "#ffe8a0", outline: "none" }}
+          />
+          <button
+            onClick={handleWithdraw}
+            disabled={withdrawing || !withdrawAmt || parseFloat(withdrawAmt) < 100 || parseFloat(withdrawAmt) > runex}
+            className="osrs-btn-green px-4 text-sm">
+            {withdrawing ? "…" : "Withdraw"}
+          </button>
+        </div>
+        <p className="text-xs" style={{ color: "#7a6030" }}>
+          Balance: <span style={{ color: "#ff6060", fontWeight: 700 }}>{runex.toLocaleString()} RuneX</span>
+        </p>
+        {withdrawMsg && (
+          <p className={`text-xs font-bold ${withdrawMsg.ok ? "text-green-400" : "text-red-400"}`}>
+            {withdrawMsg.text}
+          </p>
+        )}
       </div>
 
     </div>

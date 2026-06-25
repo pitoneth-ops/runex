@@ -234,3 +234,6 @@ export const battleRoyale = (wallet: string, heroId: number, txSignature: string
 
 export const claimStarterMiner = (wallet: string) =>
   api.post<{ ok: boolean; character: Character }>(`/player/${wallet}/claim-starter-miner`).then(r => r.data);
+
+export const withdrawRunex = (wallet: string, amount: number) =>
+  api.post<{ ok: boolean; signature: string; runex: number }>(`/player/${wallet}/withdraw-runex`, { amount }).then(r => r.data);

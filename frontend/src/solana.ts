@@ -1,3 +1,6 @@
+import { Buffer } from "buffer";
+if (typeof globalThis.Buffer === "undefined") (globalThis as typeof globalThis & { Buffer: typeof Buffer }).Buffer = Buffer;
+
 import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,

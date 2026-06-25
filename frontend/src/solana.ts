@@ -7,7 +7,7 @@ import {
 
 export const RUNEX_MINT     = new PublicKey("6AVAUKa9uxQpruHZUinFECpXEh1usRVtzQWK8N2wpump");
 export const TREASURY       = new PublicKey("2yeGpBaCFF8Q4jNFEmncL677wxjKaDHFnr7v5YGVX2T6");
-export const SOLANA_RPC     = "https://api.mainnet-beta.solana.com";
+export const SOLANA_RPC     = "https://lb.drpc.live/solana/An6mizDna0g2rZjqFdDX1KlA_FSOXTcR8beSIqM_iWcm";
 export const RUNEX_DECIMALS = 6;
 
 export const connection = new Connection(SOLANA_RPC, "confirmed");

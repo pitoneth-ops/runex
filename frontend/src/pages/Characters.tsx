@@ -267,7 +267,7 @@ function EquipmentPanel({ hero, inventory, wallet, onRefresh }: {
                 onClick={() => handleUnequip(selectedEquipped)}
                 disabled={busy}
                 style={{ fontSize: "0.7rem", padding: "3px 8px", borderRadius: 6, border: "1px solid rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.08)", color: "#ef4444", cursor: "pointer" }}>
-                Remover
+                Remove
               </button>
             </div>
           )}
@@ -275,7 +275,7 @@ function EquipmentPanel({ hero, inventory, wallet, onRefresh }: {
           {/* Available items from inventory for this slot */}
           {slotItems.length > 0 ? (
             <div className="space-y-1">
-              <p className="text-xs" style={{ color: "#6b4f10" }}>Inventário — clique para equipar:</p>
+              <p className="text-xs" style={{ color: "#6b4f10" }}>Inventory — click to equip:</p>
               {slotItems.map(item => {
                 const { stat, val } = getPrimaryStatLabel(item);
                 return (
@@ -300,8 +300,8 @@ function EquipmentPanel({ hero, inventory, wallet, onRefresh }: {
           ) : (
             !selectedEquipped && (
               <p className="text-xs" style={{ color: "#6b4f10" }}>
-                Sem itens de {SLOT_LABEL[selectedSlot].toLowerCase()} no inventário.<br />
-                Complete batalhas HeroX ou missões no dungeon para obter equipamentos.
+                No {SLOT_LABEL[selectedSlot].toLowerCase()} items in inventory.<br />
+                Complete HeroX battles or dungeon runs to obtain equipment.
               </p>
             )
           )}
@@ -330,7 +330,7 @@ function InventoryGrid({ items }: { items: CharacterItem[] }) {
       {equipItems.length > 0 && (
         <div>
           <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#a08040" }}>
-            Equipamentos no Inventário ({equipItems.length})
+            Equipment in Inventory ({equipItems.length})
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px,1fr))", gap: 8 }}>
             {equipItems.map(item => {
@@ -352,7 +352,7 @@ function InventoryGrid({ items }: { items: CharacterItem[] }) {
       {oldItems.length > 0 && (
         <div>
           <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#a08040" }}>
-            Itens de Fighter ({oldItems.length})
+            Fighter Items ({oldItems.length})
           </p>
           <div className="flex flex-wrap gap-2">
             {oldItems.map(item => (
@@ -385,7 +385,7 @@ export default function Characters() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  if (!wallet) return <p className="text-center text-gray-500 py-20">Conecte a carteira primeiro.</p>;
+  if (!wallet) return <p className="text-center text-gray-500 py-20">Connect your wallet first.</p>;
 
   const heroes    = player?.heroes ?? [];
   const inventory = player?.inventory ?? [];
@@ -404,7 +404,7 @@ export default function Characters() {
       {heroes.length === 0 ? (
         <div className="text-center py-16 text-gray-600">
           <p className="text-4xl mb-3">✗</p>
-          <p>Nenhum HeroX. Vá em Heroes e mine um!</p>
+          <p>No HeroX yet. Go to Heroes and mint one!</p>
         </div>
       ) : (
         <>
@@ -444,7 +444,7 @@ export default function Characters() {
           ) : (
             <div className="rounded-xl px-4 py-3 text-sm"
                  style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", color: "#6b7280" }}>
-              Inventário vazio. Complete batalhas HeroX ou fases do dungeon para obter equipamentos!
+              Empty inventory. Complete HeroX battles or dungeon phases to get equipment!
             </div>
           )}
         </>

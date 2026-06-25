@@ -73,7 +73,7 @@ export default function App() {
                 border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.06)",
                 color: "#ef444488", cursor: "pointer",
               }}>
-              ⏏ Sair
+              ⏏ Exit
             </button>
           </div>
         )}

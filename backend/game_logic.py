@@ -39,7 +39,7 @@ BOX_COST_RUNEX = 50_000   # RuneX to mint a staking character
 
 def open_box(player) -> dict:
     if (player.runex or 0) < BOX_COST_RUNEX:
-        return {"error": f"Precisa de {BOX_COST_RUNEX:,} RuneX para abrir um baú"}
+        return {"error": f"Requires {BOX_COST_RUNEX:,} RuneX to open a chest"}
 
     rarity     = roll_rarity()
     class_type = roll_class()

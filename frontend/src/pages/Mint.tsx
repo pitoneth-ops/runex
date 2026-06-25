@@ -205,19 +205,17 @@ export default function Mint() {
           <>
             <div className="flex items-center justify-center gap-2 mb-2">
               <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={18} />
-              <span style={{ color: (player?.runex ?? 0) >= BOX_COST ? "#ff6060" : "#6b7280", fontWeight: 700, fontFamily: "'Cinzel',serif" }}>
+              <span style={{ color: canAfford ? "#ff6060" : "#6b7280", fontWeight: 700, fontFamily: "'Cinzel',serif" }}>
                 {(player?.runex ?? 0).toLocaleString()} / {BOX_COST.toLocaleString()} RuneX
               </span>
             </div>
-            <button
-              onClick={handleMint}
-              disabled={!canAfford}
-              className={canAfford ? "osrs-btn-green w-full py-3 text-base" : "w-full py-3 rounded-xl font-black text-sm"}
-              style={!canAfford ? { background: "rgba(107,114,128,0.2)", border: "1px solid rgba(107,114,128,0.3)", color: "#6b7280", cursor: "not-allowed" } : {}}>
-              {canAfford
-                ? `🎁 Abrir Baú · 50.000 RuneX`
-                : `Precisa de 50.000 RuneX · Compre na Shop`}
-            </button>
+            {canAfford && (
+              <button
+                onClick={handleMint}
+                className="osrs-btn-green w-full py-3 text-base">
+                🎁 Open Chest · 50,000 RuneX
+              </button>
+            )}
           </>
         )}
 

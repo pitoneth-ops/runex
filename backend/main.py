@@ -929,7 +929,7 @@ ITEM_CHEST_WEIGHTS     = [88, 10, 1.5, 0.5]  # common/rare/epic/legendary — ra
 def buy_runex_chest(wallet: str, db: Session = Depends(get_db)):
     player = _get_player(wallet, db)
     if (player.tokens or 0) < RUNEX_CHEST_COST:
-        raise HTTPException(400, f"Precisa de {RUNEX_CHEST_COST:,} Gold")
+        raise HTTPException(400, f"Requires {RUNEX_CHEST_COST:,} Gold")
 
     player.tokens  = (player.tokens or 0) - RUNEX_CHEST_COST
     runex_gained   = random.randint(RUNEX_CHEST_MIN, RUNEX_CHEST_MAX)
@@ -948,7 +948,7 @@ def buy_runex_chest(wallet: str, db: Session = Depends(get_db)):
 def buy_item_chest(wallet: str, db: Session = Depends(get_db)):
     player = _get_player(wallet, db)
     if (player.tokens or 0) < ITEM_CHEST_COST:
-        raise HTTPException(400, f"Precisa de {ITEM_CHEST_COST:,} Gold")
+        raise HTTPException(400, f"Requires {ITEM_CHEST_COST:,} Gold")
 
     player.tokens = (player.tokens or 0) - ITEM_CHEST_COST
     runex_gained  = random.randint(ITEM_CHEST_RUNEX_MIN, ITEM_CHEST_RUNEX_MAX)

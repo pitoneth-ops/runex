@@ -297,7 +297,7 @@ function BattleOverlay({ hero, wallet, onClose, onDone }: {
                         </div>
                       </div>
                     )}
-                    <button onClick={onClose} className="osrs-btn w-full px-8">Fechar</button>
+                    <button onClick={onClose} className="osrs-btn w-full px-8">Close</button>
                   </div>
               }
             </div>

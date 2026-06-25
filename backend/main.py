@@ -29,6 +29,7 @@ from hero_data import (
     roll_equipment_item, PHASE_EQUIP_DROP,
 )
 import random
+import requests as _requests
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./rpgame.db")
 # Railway uses legacy postgres:// prefix — SQLAlchemy requires postgresql://
@@ -52,6 +53,35 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── On-chain RuneX sync ───────────────────────────────────────────────────────
+_RUNEX_MINT  = "6AVAUKa9uxQpruHZUinFECpXEh1usRVtzQWK8N2wpump"
+_SOLANA_RPC  = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
+
+def _get_on_chain_runex(wallet: str) -> int:
+    """Return wallet's on-chain RuneX balance (integer units). Returns -1 on RPC failure."""
+    try:
+        resp = _requests.post(_SOLANA_RPC, json={
+            "jsonrpc": "2.0", "id": 1,
+            "method": "getTokenAccountsByOwner",
+            "params": [wallet, {"mint": _RUNEX_MINT}, {"encoding": "jsonParsed"}],
+        }, timeout=5)
+        accounts = resp.json().get("result", {}).get("value", [])
+        if not accounts:
+            return 0
+        ui = accounts[0]["account"]["data"]["parsed"]["info"]["tokenAmount"]["uiAmount"]
+        return int(ui or 0)
+    except Exception:
+        return -1   # RPC unavailable — keep stored value
+
+
+def _sync_runex(player: Player, db: Session) -> None:
+    """Fetch on-chain balance and update player.runex if RPC succeeds."""
+    bal = _get_on_chain_runex(player.wallet)
+    if bal >= 0 and bal != (player.runex or 0):
+        player.runex = bal
+        db.commit()
 
 
 def _migrate(stmt: str):
@@ -422,6 +452,7 @@ def get_player(wallet: str, db: Session = Depends(get_db)):
     if staked_until is not None and staked_until.tzinfo is None:
         staked_until = staked_until.replace(tzinfo=timezone.utc)
 
+    _sync_runex(p, db)
     bank_boost = _bank_boost_pct(p)
     return {
         "wallet":          p.wallet,

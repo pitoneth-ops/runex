@@ -1,11 +1,12 @@
-import json
 import random
 from datetime import datetime, timezone, timedelta
 from character_data import (
-    roll_rarity, roll_class, roll_item,
+    roll_rarity, roll_class, roll_item, roll_stats,
     tokens_per_minute, CHEST_DROP_PER_MIN,
     EXPIRY_DAYS, BOX_COST, CLASS_EMOJI, RARITY_EMOJI,
+    PRIMARY_STAT,
 )
+from hero_data import roll_equipment_item
 
 
 def _now() -> datetime:
@@ -32,15 +33,17 @@ def _char_boosts(char) -> tuple[float, float]:
     return token_boost, drop_boost
 
 
+BOX_COST_RUNEX = 50_000   # RuneX to mint a staking character
+
 # ── Box / minting ─────────────────────────────────────────────────────────────
 
 def open_box(player) -> dict:
-    if player.tokens < BOX_COST:
-        return {"error": f"Need {BOX_COST:,} tokens to open a box"}
+    if (player.runex or 0) < BOX_COST_RUNEX:
+        return {"error": f"Precisa de {BOX_COST_RUNEX:,} RuneX para abrir um baú"}
 
     rarity     = roll_rarity()
     class_type = roll_class()
-    player.tokens -= BOX_COST
+    player.runex = (player.runex or 0) - BOX_COST_RUNEX
 
     return {
         "ok":         True,
@@ -50,6 +53,7 @@ def open_box(player) -> dict:
         "rarity_emoji": RARITY_EMOJI[rarity],
         "expires_days": EXPIRY_DAYS[rarity],
         "tokens":     player.tokens,
+        "runex":      player.runex,
     }
 
 
@@ -107,7 +111,11 @@ def _do_claim(player, char, cap_at: datetime | None = None) -> dict:
     last_chest = _aware(char.last_chest_at or char.staked_at)
 
     token_boost, drop_boost = _char_boosts(char)
-    rate = tokens_per_minute(char.class_type, char.rarity, token_boost)
+    bank_boost = min(int((getattr(player, "staked_gold", 0) or 0) // 1_000_000) * 10, 100)
+    _CLASS_SKILL = {"warrior": "skill_attack", "archer": "skill_ranged", "mage": "skill_magic", "miner": "skill_mining"}
+    _skill_attr  = _CLASS_SKILL.get(char.class_type, "")
+    skill_bonus  = int(getattr(player, _skill_attr, 1.0) or 1.0) * 0.2 if _skill_attr else 0.0
+    rate = tokens_per_minute(char.class_type, char.rarity, token_boost + bank_boost + skill_bonus)
 
     minutes_elapsed = max(0.0, (now - last_claim).total_seconds() / 60)
     tokens_earned   = int(minutes_elapsed * rate)
@@ -115,14 +123,36 @@ def _do_claim(player, char, cap_at: datetime | None = None) -> dict:
     player.tokens  += tokens_earned
     char.last_claim_at = now
 
-    # Chest rolls — only for non-miners
+    # Skill gains: 1 character-day staked = 1 level, cap 99
+    days = minutes_elapsed / 1440.0
+    if char.class_type == "warrior":
+        player.skill_attack    = min(99.0, (player.skill_attack    or 1.0) + days)
+    elif char.class_type == "archer":
+        player.skill_ranged    = min(99.0, (player.skill_ranged    or 1.0) + days)
+    elif char.class_type == "mage":
+        player.skill_magic     = min(99.0, (player.skill_magic     or 1.0) + days)
+    elif char.class_type == "miner":
+        player.skill_mining    = min(99.0, (player.skill_mining    or 1.0) + days)
+    player.skill_hitpoints = min(99.0, (player.skill_hitpoints or 10.0) + days)
+
+    # Chest/stone rolls — fighters drop items, miners drop upgrade stones
     new_items: list[dict] = []
     if char.class_type != "miner":
         chest_minutes = max(0.0, (now - last_chest).total_seconds() / 60)
         effective_rate = CHEST_DROP_PER_MIN + drop_boost
         for _ in range(int(chest_minutes)):
             if random.random() < effective_rate:
-                new_items.append(roll_item())
+                if random.random() < 0.25:
+                    new_items.append(roll_equipment_item())
+                else:
+                    new_items.append(roll_item())
+        char.last_chest_at = now
+    else:
+        # Miners drop upgrade stones at the same base rate as dungeon item drops
+        stone_minutes = max(0.0, (now - last_chest).total_seconds() / 60)
+        for _ in range(int(stone_minutes)):
+            if random.random() < CHEST_DROP_PER_MIN:
+                new_items.append({"item_type": "upgrade_stone", "value": 1})
         char.last_chest_at = now
 
     return {
@@ -173,7 +203,7 @@ def unequip_item(player, char, item) -> dict:
 
 # ── Serializers ───────────────────────────────────────────────────────────────
 
-def char_to_dict(char) -> dict:
+def char_to_dict(char, bank_boost_pct: int = 0, skill_bonus_pct: float = 0.0) -> dict:
     now     = _now()
     expires = _aware(char.expires_at)
     token_boost, drop_boost = _char_boosts(char)
@@ -187,7 +217,7 @@ def char_to_dict(char) -> dict:
         last = _aware(char.last_claim_at or char.staked_at)
         cap  = min(now, expires)
         mins = max(0.0, (cap - last).total_seconds() / 60)
-        rate = tokens_per_minute(char.class_type, char.rarity, token_boost)
+        rate = tokens_per_minute(char.class_type, char.rarity, token_boost + bank_boost_pct + skill_bonus_pct)
         pending_tokens = int(mins * rate)
 
     return {
@@ -207,27 +237,59 @@ def char_to_dict(char) -> dict:
         "pending_tokens": pending_tokens,
         "equipped_items": [item_to_dict(i) for i in (char.items or []) if i.is_equipped and i.equipped_on == char.id],
         "obtained_at":   _aware(char.obtained_at).isoformat(),
+        "stats": {
+            "attack":  char.stat_attack  or 50,
+            "defense": char.stat_defense or 50,
+            "hp":      char.stat_hp      or 80,
+            "magic":   char.stat_magic   or 15,
+            "ranged":  char.stat_ranged  or 15,
+            "speed":   char.stat_speed   or 45,
+        },
+        "primary_stat": PRIMARY_STAT.get(char.class_type, "attack"),
     }
 
+
+_RARITY_EMOJI = {"common": "⬜", "rare": "🔵", "epic": "🟣", "legendary": "🟡"}
 
 def item_to_dict(item) -> dict:
-    labels = {
-        "vitality":    f"+{int(item.value)} days",
-        "token_boost": f"+{int(item.value)}% tokens",
-        "drop_boost":  f"+{round(item.value * 100, 4)}% drop/min",
+    base = {
+        "id":             item.id,
+        "item_type":      item.item_type or "equipment",
+        "value":          item.value or 0,
+        "is_equipped":    item.is_equipped,
+        "equipped_on":    item.equipped_on,
+        "hero_equipped_on": getattr(item, "hero_equipped_on", None),
+        "obtained_at":    _aware(item.obtained_at).isoformat(),
+        "item_slot":      getattr(item, "item_slot",       None),
+        "item_rarity":    getattr(item, "item_rarity",     None),
+        "item_name":      getattr(item, "item_name",       None),
+        "stat_vitalidade": getattr(item, "stat_vitalidade", 0) or 0,
+        "stat_atk":        getattr(item, "stat_atk",        0) or 0,
+        "stat_destreza":   getattr(item, "stat_destreza",   0) or 0,
+        "stat_magia":      getattr(item, "stat_magia",       0) or 0,
     }
-    icons = {
-        "vitality":    "💚",
-        "token_boost": "⚡",
-        "drop_boost":  "🍀",
-    }
-    return {
-        "id":          item.id,
-        "item_type":   item.item_type,
-        "value":       item.value,
-        "label":       labels.get(item.item_type, "?"),
-        "icon":        icons.get(item.item_type, "📦"),
-        "is_equipped": item.is_equipped,
-        "equipped_on": item.equipped_on,
-        "obtained_at": _aware(item.obtained_at).isoformat(),
-    }
+
+    if item.item_type == "equipment":
+        rarity  = item.item_rarity or "common"
+        re      = _RARITY_EMOJI.get(rarity, "")
+        stat_val = max(item.stat_vitalidade or 0, item.stat_atk or 0,
+                       item.stat_destreza or 0, item.stat_magia or 0)
+        stat_key = (
+            "vitalidade" if (item.stat_vitalidade or 0) == stat_val else
+            "atk"        if (item.stat_atk        or 0) == stat_val else
+            "destreza"   if (item.stat_destreza   or 0) == stat_val else "magia"
+        )
+        base["label"] = f"{re} {item.item_name or item.item_slot} (+{stat_val} {stat_key})"
+        base["icon"]  = "⚔"
+    else:
+        labels = {
+            "vitality":      f"+{int(item.value or 0)} days",
+            "token_boost":   f"+{int(item.value or 0)}% tokens",
+            "drop_boost":    f"+{round((item.value or 0) * 100, 4)}% drop/min",
+            "upgrade_stone": "Upgrade Stone",
+        }
+        icons = {"vitality": "💚", "token_boost": "⚡", "drop_boost": "🍀", "upgrade_stone": "🪨"}
+        base["label"] = labels.get(item.item_type, "?")
+        base["icon"]  = icons.get(item.item_type, "📦")
+
+    return base

@@ -2,34 +2,45 @@ import { useState, useEffect } from "react";
 import { useGameStore } from "../store";
 import { getPlayer, equipItem, unequipItem } from "../api";
 import type { CharacterItem, Character } from "../api";
+import { OsrsSprite, OsrsIcon } from "../components/OsrsSprite";
+import { CHAR_SPRITES, ARMOR_ICONS, ITEM_SPRITES } from "../sprites";
 
 const ITEM_COLOR: Record<string, string> = {
-  vitality: "#4ade80", token_boost: "#fbbf24", drop_boost: "#a78bfa",
+  vitality: "#6dde6d", token_boost: "#ffcc00", drop_boost: "#a78bfa",
 };
+
+const TOTAL_SLOTS = 28;
 
 export default function Inventory() {
   const { wallet, player, setPlayer } = useGameStore();
   const [selected, setSelected] = useState<CharacterItem | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg]   = useState("");
+  const [busy, setBusy]         = useState(false);
+  const [msg, setMsg]           = useState("");
 
   useEffect(() => {
     if (wallet) getPlayer(wallet).then(setPlayer).catch(() => {});
   }, [wallet]);
 
-  const inventory = player?.inventory ?? [];
-  const chars     = (player?.characters ?? []).filter(c => c.class_type !== "miner" && c.days_left > 0);
+  const freeItems     = player?.inventory ?? [];
+  const equippedItems = (player?.characters ?? []).flatMap(c => c.equipped_items);
+  const allItems      = [...freeItems, ...equippedItems];
+
+  const chars = (player?.characters ?? []).filter(c => c.class_type !== "miner" && c.days_left > 0);
+
+  const slots: (CharacterItem | null)[] = [
+    ...allItems,
+    ...Array(Math.max(0, TOTAL_SLOTS - allItems.length)).fill(null),
+  ].slice(0, TOTAL_SLOTS);
+
+  const isEquipped = (item: CharacterItem) => equippedItems.some(e => e.id === item.id);
 
   async function handleEquip(char: Character) {
     if (!wallet || !selected) return;
-    setBusy(true);
-    setMsg("");
+    setBusy(true); setMsg("");
     try {
       await equipItem(wallet, char.id, selected.id);
-      const p = await getPlayer(wallet);
-      setPlayer(p);
-      setSelected(null);
-      setMsg("Item equipped!");
+      const p = await getPlayer(wallet); setPlayer(p);
+      setSelected(null); setMsg("Equipped!");
     } catch (e: unknown) {
       const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       setMsg(detail ?? "Failed to equip");
@@ -38,119 +49,159 @@ export default function Inventory() {
 
   async function handleUnequip(item: CharacterItem) {
     if (!wallet || !item.equipped_on) return;
-    setBusy(true);
-    setMsg("");
+    setBusy(true); setMsg("");
     try {
       await unequipItem(wallet, item.equipped_on, item.id);
-      const p = await getPlayer(wallet);
-      setPlayer(p);
-      setMsg("Item unequipped!");
+      const p = await getPlayer(wallet); setPlayer(p);
+      setMsg("Unequipped!");
     } catch (e: unknown) {
       const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setMsg(detail ?? "Failed to unequip");
+      setMsg(detail ?? "Failed");
     } finally { setBusy(false); }
   }
 
-  if (!wallet) return <p className="text-center text-gray-500 py-20">Connect wallet first.</p>;
+  function handleSlotClick(item: CharacterItem | null) {
+    if (!item) { setSelected(null); return; }
+    setSelected(selected?.id === item.id ? null : item);
+  }
 
-  const allItems = [
-    ...(player?.inventory ?? []),
-    ...(player?.characters ?? []).flatMap(c => c.equipped_items),
-  ];
+  if (!wallet) return (
+    <div className="text-center py-20" style={{ color: "#a08040" }}>Connect wallet first.</div>
+  );
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      <h1 className="text-2xl font-black text-white">🎒 Inventory</h1>
+    <div className="animate-fade-in" style={{ padding: "0 8px" }}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4 px-2">
+        <h1 className="text-2xl font-black" style={{ fontFamily: "'Cinzel',serif", color: "#ffcc00" }}>🎒 Inventory</h1>
+        <span className="text-xs" style={{ fontFamily: "'Cinzel',serif", color: "#a08040" }}>
+          {allItems.length}/{TOTAL_SLOTS}
+        </span>
+      </div>
 
-      {allItems.length === 0 && (
-        <div className="text-center py-16 text-gray-600">
-          <p className="text-4xl mb-3">📭</p>
-          <p>No items yet. Stake fighters to earn chest drops!</p>
-        </div>
-      )}
-
+      {/* Toast */}
       {msg && (
-        <div className="rounded-xl p-3 text-center text-sm font-bold"
-             style={{ background: msg.includes("!") ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
-                      color: msg.includes("!") ? "#4ade80" : "#f87171" }}>
+        <div className="rounded-xl p-2 text-center text-sm font-bold mb-3"
+             style={{ background: msg.includes("!") ? "rgba(109,222,109,0.1)" : "rgba(239,68,68,0.1)",
+                      border: `1px solid ${msg.includes("!") ? "rgba(109,222,109,0.3)" : "rgba(239,68,68,0.3)"}`,
+                      color: msg.includes("!") ? "#6dde6d" : "#f87171" }}>
           {msg}
         </div>
       )}
 
-      {/* Unequipped items */}
-      {inventory.length > 0 && (
-        <section className="space-y-3">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Items ({inventory.length})</p>
-          <div className="grid grid-cols-2 gap-3">
-            {inventory.map(item => (
-              <button key={item.id}
-                onClick={() => setSelected(selected?.id === item.id ? null : item)}
-                className="rounded-xl p-3 text-left transition-all"
-                style={{
-                  background: selected?.id === item.id ? "rgba(250,204,21,0.1)" : "rgba(255,255,255,0.04)",
-                  border: `1.5px solid ${selected?.id === item.id ? "rgba(250,204,21,0.4)" : "rgba(255,255,255,0.08)"}`,
-                }}>
-                <p className="text-2xl mb-1">{item.icon}</p>
-                <p className="font-black text-white text-sm capitalize">{item.item_type.replace("_", " ")}</p>
-                <p className="text-xs font-bold" style={{ color: ITEM_COLOR[item.item_type] }}>{item.label}</p>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Equip picker */}
-      {selected && (
-        <section className="space-y-3">
-          <p className="text-xs font-bold text-yellow-400 uppercase tracking-widest">
-            Equip "{selected.icon} {selected.label}" on:
-          </p>
-          {chars.length === 0 && (
-            <p className="text-gray-500 text-sm">No eligible characters (unstaked Archer/Warrior/Mage needed).</p>
-          )}
-          {chars.map(c => (
-            <button key={c.id} onClick={() => handleEquip(c)} disabled={busy || c.is_staked}
-              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all"
+      {/* OSRS-style inventory grid — full width */}
+      <div style={{
+        background: "#3a3625",
+        border: "4px solid",
+        borderColor: "#857348 #3d2e0f #3d2e0f #857348",
+        boxShadow: "inset 3px 3px 0 #1a1000, inset -3px -3px 0 #6b5a30",
+        padding: 4,
+        display: "grid",
+        gridTemplateColumns: "repeat(4, 1fr)",
+        gap: 3,
+        width: "100%",
+      }}>
+        {slots.map((item, i) => {
+          const isSel    = item && selected?.id === item.id;
+          const equipped = item && isEquipped(item);
+          return (
+            <div
+              key={i}
+              onClick={() => handleSlotClick(item)}
+              title={item ? `${item.label}${equipped ? " (equipped)" : ""}` : ""}
               style={{
-                background: c.is_staked ? "rgba(255,255,255,0.02)" : "rgba(34,197,94,0.06)",
-                border: `1px solid ${c.is_staked ? "rgba(255,255,255,0.06)" : "rgba(34,197,94,0.2)"}`,
-                opacity: c.is_staked ? 0.4 : 1,
-                cursor: c.is_staked ? "not-allowed" : "pointer",
-              }}>
-              <span className="text-2xl">{c.emoji}</span>
-              <div>
-                <p className="font-black text-white text-sm capitalize">{c.class_type} · {c.rarity}</p>
-                <p className="text-gray-500 text-xs">{c.days_left}d left {c.is_staked ? "· Unstake to equip" : ""}</p>
-              </div>
-            </button>
-          ))}
-        </section>
+                aspectRatio: "1",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                position: "relative",
+                cursor: item ? "pointer" : "default",
+                background: isSel
+                  ? "rgba(255,204,0,0.22)"
+                  : item ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.18)",
+                outline: isSel ? "2px solid #ffcc00" : "none",
+                outlineOffset: -2,
+              }}
+            >
+              {item && (
+                <>
+                  <OsrsIcon
+                    src={ITEM_SPRITES[item.item_type] ?? ""}
+                    fallback={item.icon}
+                    size={44}
+                  />
+                  {equipped && (
+                    <div style={{
+                      position: "absolute", inset: 0,
+                      background: "rgba(96,165,250,0.2)",
+                      border: "2px solid rgba(96,165,250,0.45)",
+                      pointerEvents: "none",
+                    }} />
+                  )}
+                  <span style={{
+                    position: "absolute", bottom: 2, right: 3,
+                    fontSize: "0.6rem", fontWeight: 900, color: "#ffcc00",
+                    textShadow: "1px 1px 0 #000", lineHeight: 1,
+                  }}>1</span>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {allItems.length === 0 && (
+        <p className="text-sm text-center mt-4" style={{ color: "#6b5a30" }}>
+          No items yet. Stake fighters — they drop item chests over time.
+        </p>
       )}
 
-      {/* Equipped items per character */}
-      {(player?.characters ?? []).filter(c => c.equipped_items.length > 0).map(c => (
-        <section key={c.id} className="space-y-2">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">
-            {c.emoji} {c.class_type} equipped
-          </p>
-          {c.equipped_items.map(item => (
-            <div key={item.id} className="flex items-center justify-between rounded-xl px-4 py-3"
-                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-              <div className="flex items-center gap-3">
-                <span className="text-xl">{item.icon}</span>
-                <div>
-                  <p className="font-bold text-white text-sm">{item.label}</p>
-                  <p className="text-xs text-gray-500 capitalize">{item.item_type.replace("_", " ")}</p>
-                </div>
-              </div>
-              <button onClick={() => handleUnequip(item)} disabled={busy || c.is_staked}
-                className="text-xs text-red-400 hover:text-red-300 font-bold transition-colors disabled:opacity-30">
-                {c.is_staked ? "Unstake first" : "Remove"}
-              </button>
+      {/* Selected item panel */}
+      {selected && (
+        <div className="rounded-2xl p-4 mt-4 space-y-3"
+             style={{ background: "rgba(255,204,0,0.05)", border: "1px solid rgba(255,204,0,0.2)" }}>
+          <div className="flex items-center gap-3">
+            <OsrsIcon src={ITEM_SPRITES[selected.item_type] ?? ""} fallback={selected.icon} size={44} />
+            <div>
+              <p className="font-black" style={{ fontFamily: "'Cinzel',serif", color: "#ffe8a0", fontSize: "1rem" }}>{selected.label}</p>
+              <p className="text-xs capitalize" style={{ color: ITEM_COLOR[selected.item_type] }}>
+                {selected.item_type.replace("_", " ")}
+              </p>
             </div>
-          ))}
-        </section>
-      ))}
+          </div>
+
+          {isEquipped(selected) ? (
+            <button onClick={() => handleUnequip(selected)} disabled={busy}
+              className="osrs-btn-red w-full text-sm">
+              {busy ? "…" : "Remove from character"}
+            </button>
+          ) : (
+            <>
+              <p className="text-xs" style={{ color: "#a08040" }}>Equip on:</p>
+              {chars.length === 0
+                ? <p className="text-xs" style={{ color: "#6b5a30" }}>No fighters available (unstaked).</p>
+                : <div className="grid grid-cols-2 gap-2">
+                    {chars.map(c => (
+                      <button key={c.id} onClick={() => handleEquip(c)} disabled={busy || c.is_staked}
+                        className="flex items-center gap-2 rounded-xl px-3 py-2"
+                        style={{
+                          background: "rgba(0,0,0,0.25)", border: "1px solid #3d2a00",
+                          opacity: c.is_staked ? 0.4 : 1, cursor: c.is_staked ? "not-allowed" : "pointer",
+                        }}>
+                        <OsrsSprite srcs={CHAR_SPRITES[c.class_type]?.[c.rarity] ?? []} fallback={c.emoji ?? "?"} size={28} />
+                        <OsrsIcon src={ARMOR_ICONS[c.class_type]?.[c.rarity] ?? ""} fallback="" size={16} />
+                        <div className="text-left">
+                          <p className="text-xs font-black capitalize" style={{ color: "#ffe8a0" }}>{c.class_type}</p>
+                          <p className="text-xs" style={{ color: "#6b5a30" }}>{c.is_staked ? "staked" : `${c.days_left}d`}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+              }
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

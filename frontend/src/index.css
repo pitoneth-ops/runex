@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Crimson+Text:wght@400;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,16 +6,98 @@
 
 @layer base {
   body {
-    background: #07070f;
-    color: #f1f5f9;
+    background: #1a0e00;
+    color: #ffe8a0;
     min-height: 100vh;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Crimson Text', Georgia, serif;
     -webkit-font-smoothing: antialiased;
     background-image:
-      radial-gradient(ellipse at 20% 0%, rgba(255,100,0,0.06) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 100%, rgba(120,40,200,0.06) 0%, transparent 50%);
+      url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='1' height='1' fill='rgba(255,200,80,0.03)'/%3E%3C/svg%3E"),
+      radial-gradient(ellipse at 50% 0%, rgba(180,100,0,0.15) 0%, transparent 60%);
+  }
+
+  h1, h2, h3, .font-title {
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.05em;
   }
 }
+
+/* OSRS-style pixel border */
+.osrs-border {
+  border: 2px solid #8b6914;
+  box-shadow:
+    inset 0 0 0 1px #3d2a00,
+    inset 1px 1px 0 #d4a84b,
+    0 0 0 1px #1a0e00;
+  background: #1a1200;
+}
+
+.osrs-panel {
+  background: linear-gradient(180deg, #2a1f08 0%, #1a1200 100%);
+  border: 2px solid #6b4f10;
+  box-shadow:
+    inset 1px 1px 0 rgba(212,168,75,0.3),
+    inset -1px -1px 0 rgba(0,0,0,0.5);
+}
+
+.osrs-btn {
+  background: linear-gradient(180deg, #5a3e10 0%, #3d2a00 100%);
+  border: 2px solid #8b6914;
+  color: #ffe8a0;
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  box-shadow: inset 1px 1px 0 rgba(212,168,75,0.3), inset -1px -1px 0 rgba(0,0,0,0.5);
+  transition: all 0.1s;
+  cursor: pointer;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+}
+.osrs-btn:hover { background: linear-gradient(180deg, #6b4f10 0%, #4d3500 100%); }
+.osrs-btn:active { transform: translateY(1px); box-shadow: inset 1px 1px 0 rgba(0,0,0,0.3); }
+.osrs-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.osrs-btn-green {
+  background: linear-gradient(180deg, #1a4a1a 0%, #0d2e0d 100%);
+  border: 2px solid #2d7a2d;
+  color: #6dde6d;
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  box-shadow: inset 1px 1px 0 rgba(109,222,109,0.2), inset -1px -1px 0 rgba(0,0,0,0.5);
+  transition: all 0.1s;
+  cursor: pointer;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+}
+.osrs-btn-green:hover { background: linear-gradient(180deg, #225522 0%, #153815 100%); }
+.osrs-btn-green:active { transform: translateY(1px); }
+.osrs-btn-green:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.osrs-btn-red {
+  background: linear-gradient(180deg, #4a1a1a 0%, #2e0d0d 100%);
+  border: 2px solid #7a2d2d;
+  color: #de6d6d;
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  box-shadow: inset 1px 1px 0 rgba(222,109,109,0.2), inset -1px -1px 0 rgba(0,0,0,0.5);
+  transition: all 0.1s;
+  cursor: pointer;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+}
+.osrs-btn-red:hover { background: linear-gradient(180deg, #552222 0%, #381515 100%); }
+.osrs-btn-red:active { transform: translateY(1px); }
+.osrs-btn-red:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.osrs-label-common    { color: #aaaaaa; }
+.osrs-label-rare      { color: #6699ff; }
+.osrs-label-epic      { color: #cc66ff; }
+.osrs-label-legendary { color: #ffcc00; text-shadow: 0 0 8px rgba(255,204,0,0.5); }
 
 .font-pixel { font-family: 'Press Start 2P', monospace; }
 
@@ -261,6 +343,18 @@
   to   { opacity: 1; }
 }
 .animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
+
+@keyframes chest-shake {
+  0%   { transform: rotate(0deg)   scale(1);    }
+  15%  { transform: rotate(-8deg)  scale(1.08); }
+  30%  { transform: rotate(8deg)   scale(1.1);  }
+  45%  { transform: rotate(-6deg)  scale(1.08); }
+  60%  { transform: rotate(6deg)   scale(1.06); }
+  75%  { transform: rotate(-3deg)  scale(1.04); }
+  90%  { transform: rotate(3deg)   scale(1.02); }
+  100% { transform: rotate(0deg)   scale(1);    }
+}
+.animate-chest-shake { animation: chest-shake 0.7s ease-in-out; }
 
 @keyframes legendary-glow {
   0%,100% { box-shadow: 0 0 30px rgba(245,158,11,0.4), 0 0 60px rgba(245,158,11,0.15); }

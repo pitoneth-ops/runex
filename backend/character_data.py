@@ -55,6 +55,44 @@ RARITY_EMOJI = {
 }
 
 
+# ── Combat stats ─────────────────────────────────────────────────────────────
+# Base stats at common rarity. Primary stat guaranteed 80+.
+BASE_STATS: dict[str, dict[str, int]] = {
+    "warrior": {"attack": 85, "defense": 68, "hp": 100, "magic": 15, "ranged": 18, "speed": 45},
+    "archer":  {"attack": 22, "defense": 44, "hp":  72, "magic": 18, "ranged": 85, "speed": 80},
+    "mage":    {"attack": 18, "defense": 32, "hp":  62, "magic": 85, "ranged": 20, "speed": 58},
+    "miner":   {"attack": 48, "defense": 82, "hp": 120, "magic": 10, "ranged": 12, "speed": 28},
+}
+
+RARITY_STAT_MULT: dict[str, float] = {
+    "common":    1.0,
+    "rare":      1.25,
+    "epic":      1.55,
+    "legendary": 2.0,
+}
+
+PRIMARY_STAT: dict[str, str] = {
+    "warrior": "attack",
+    "archer":  "ranged",
+    "mage":    "magic",
+    "miner":   "defense",
+}
+
+
+def roll_stats(class_type: str, rarity: str) -> dict[str, int]:
+    base    = BASE_STATS[class_type]
+    mult    = RARITY_STAT_MULT[rarity]
+    primary = PRIMARY_STAT[class_type]
+    result  = {}
+    for stat, val in base.items():
+        variance = random.uniform(0.93, 1.07)
+        raw = int(val * mult * variance)
+        if stat == primary:
+            raw = max(80, raw)   # guarantee 80+ on primary stat
+        result[stat] = min(99, raw)
+    return result
+
+
 def roll_rarity() -> str:
     return random.choices(RARITIES, weights=RARITY_WEIGHTS, k=1)[0]
 

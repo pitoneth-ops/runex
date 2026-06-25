@@ -1,6 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+venv/
+.venv/
+
+# Database (local only)
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+
+# Logs
+backend/*.log
+backend/*_err.log
+frontend/*.log
+frontend/*_err.log
+
+# Env (sensitive)
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# Frontend build
 frontend/node_modules/
 frontend/dist/
-backend/__pycache__/
-backend/*.db
-backend/*.pyc
-.env
+frontend/.vite/
+
+# OS
+.DS_Store
+Thumbs.db

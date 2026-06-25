@@ -383,29 +383,29 @@ export default function Mining() {
         ))}
       </div>
 
-      {/* Starter miner claim card */}
-      {(player?.runex ?? 0) >= 1 && (
-        <div className="osrs-panel p-4 flex flex-col gap-3" style={{ borderColor: "rgba(96,165,250,0.4)", background: "rgba(96,165,250,0.05)" }}>
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">⛏️</span>
-            <div>
-              <p className="font-bold text-blue-300 text-sm" style={{ fontFamily: "'Cinzel',serif" }}>Free Starter Miner</p>
-              <p className="text-xs text-gray-400">100 gp/day · 30 days · one per wallet · experiment for free</p>
-            </div>
+      {/* Starter miner claim card — visible to all, requires ≥1 RuneX to claim */}
+      <div className="osrs-panel p-4 flex flex-col gap-3" style={{ borderColor: "rgba(96,165,250,0.4)", background: "rgba(96,165,250,0.05)" }}>
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">⛏️</span>
+          <div>
+            <p className="font-bold text-blue-300 text-sm" style={{ fontFamily: "'Cinzel',serif" }}>Free Starter Miner</p>
+            <p className="text-xs text-gray-400">100 gp/day · 30 days · one per wallet · experiment for free</p>
           </div>
-          {player?.starter_miner_claimed ? (
-            <p className="text-xs text-green-400">✔ Already claimed — check your ready list below.</p>
-          ) : (
-            <button onClick={handleClaimStarter} disabled={claimingStarter}
-                    className="osrs-btn text-sm w-full">
-              {claimingStarter ? "Claiming…" : "🎁 Claim Free Miner"}
-            </button>
-          )}
-          {starterMsg && (
-            <p className={`text-xs ${starterMsg.startsWith("Starter") ? "text-green-400" : "text-red-400"}`}>{starterMsg}</p>
-          )}
         </div>
-      )}
+        {player?.starter_miner_claimed ? (
+          <p className="text-xs text-green-400">✔ Already claimed — check your ready list below.</p>
+        ) : (player?.runex ?? 0) >= 1 ? (
+          <button onClick={handleClaimStarter} disabled={claimingStarter}
+                  className="osrs-btn text-sm w-full">
+            {claimingStarter ? "Claiming…" : "🎁 Claim Free Miner"}
+          </button>
+        ) : (
+          <p className="text-xs text-gray-500">Requires at least 1 RuneX in your wallet to claim.</p>
+        )}
+        {starterMsg && (
+          <p className={`text-xs ${starterMsg.startsWith("Starter") ? "text-green-400" : "text-red-400"}`}>{starterMsg}</p>
+        )}
+      </div>
 
       {miners.length === 0 && (
         <div className="text-center py-16 text-gray-600">

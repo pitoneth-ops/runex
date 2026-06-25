@@ -1,15 +1,8 @@
-import {
-  Connection,
-  PublicKey,
-  Transaction,
-  SystemProgram,
-} from "@solana/web3.js";
+import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,
   createTransferInstruction,
-  createAssociatedTokenAccountInstruction,
-  TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountIdempotentInstruction,
 } from "@solana/spl-token";
 
 export const RUNEX_MINT     = new PublicKey("6AVAUKa9uxQpruHZUinFECpXEh1usRVtzQWK8N2wpump");
@@ -21,31 +14,24 @@ export const connection = new Connection(SOLANA_RPC, "confirmed");
 
 /**
  * Transfer `uiAmount` RuneX tokens from the connected Phantom wallet to the treasury.
- * Returns the confirmed transaction signature.
+ * Uses idempotent ATA creation — no RPC pre-check needed, works even if treasury ATA is new.
  */
 export async function payRunex(uiAmount: number): Promise<string> {
-  const provider = (window as Window & { solana?: { publicKey: PublicKey; signTransaction: (tx: Transaction) => Promise<Transaction> } }).solana;
+  const provider = (window as Window & {
+    solana?: { publicKey: PublicKey; signTransaction: (tx: Transaction) => Promise<Transaction> };
+  }).solana;
   if (!provider?.publicKey) throw new Error("Wallet not connected");
 
-  const payer    = provider.publicKey;
-  const rawAmt   = BigInt(Math.round(uiAmount * 10 ** RUNEX_DECIMALS));
+  const payer  = provider.publicKey;
+  const rawAmt = BigInt(Math.round(uiAmount * 10 ** RUNEX_DECIMALS));
 
-  const fromATA  = await getAssociatedTokenAddress(RUNEX_MINT, payer);
-  const toATA    = await getAssociatedTokenAddress(RUNEX_MINT, TREASURY);
+  const fromATA = await getAssociatedTokenAddress(RUNEX_MINT, payer);
+  const toATA   = await getAssociatedTokenAddress(RUNEX_MINT, TREASURY);
 
   const tx = new Transaction();
 
-  // Create treasury ATA if it doesn't exist yet
-  const toAcct = await connection.getAccountInfo(toATA);
-  if (!toAcct) {
-    tx.add(
-      createAssociatedTokenAccountInstruction(
-        payer, toATA, TREASURY, RUNEX_MINT,
-        TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
-      )
-    );
-  }
-
+  // Idempotent: creates the treasury ATA only if it doesn't exist — no getAccountInfo call needed
+  tx.add(createAssociatedTokenAccountIdempotentInstruction(payer, toATA, TREASURY, RUNEX_MINT));
   tx.add(createTransferInstruction(fromATA, toATA, payer, rawAmt));
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();

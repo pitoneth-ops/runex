@@ -87,13 +87,15 @@ export default function App() {
               <button
                 onClick={() => { setShowWithdraw(v => !v); setWithdrawMsg(null); }}
                 style={{
-                  display: "flex", alignItems: "center", gap: 4,
-                  fontSize: "0.65rem", padding: "3px 8px", borderRadius: 6, cursor: "pointer",
-                  border: "1px solid rgba(255,96,96,0.35)", background: "rgba(255,96,96,0.07)",
-                  color: "#ff6060", fontWeight: 700, fontFamily: "'Cinzel',serif",
+                  display: "flex", alignItems: "center", gap: 5,
+                  fontSize: "0.75rem", padding: "4px 10px", borderRadius: 6, cursor: "pointer",
+                  border: "1.5px solid rgba(255,96,96,0.5)", background: "rgba(255,96,96,0.12)",
+                  color: "#ff6060", fontWeight: 900, fontFamily: "'Cinzel',serif",
+                  boxShadow: "0 0 8px rgba(255,96,96,0.15)",
                 }}>
-                <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={13} />
-                {wrunex.toLocaleString()} wRX
+                <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={14} />
+                {wrunex.toLocaleString()}
+                <span style={{ fontSize: "0.6rem", opacity: 0.8, marginLeft: 2 }}>wRX</span>
               </button>
               <button
                 onClick={() => { useGameStore.getState().setWallet(""); useGameStore.getState().setPlayer(null); }}

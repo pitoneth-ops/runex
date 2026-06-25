@@ -4,7 +4,7 @@ from character_data import (
     roll_rarity, roll_class, roll_item, roll_stats,
     tokens_per_minute, CHEST_DROP_PER_MIN,
     EXPIRY_DAYS, BOX_COST, CLASS_EMOJI, RARITY_EMOJI,
-    PRIMARY_STAT,
+    PRIMARY_STAT, STARTER_MINER_TOKENS_DAY,
 )
 from hero_data import roll_equipment_item
 
@@ -111,11 +111,14 @@ def _do_claim(player, char, cap_at: datetime | None = None) -> dict:
     last_chest = _aware(char.last_chest_at or char.staked_at)
 
     token_boost, drop_boost = _char_boosts(char)
-    bank_boost = min(int((getattr(player, "staked_gold", 0) or 0) // 1_000_000) * 10, 100)
-    _CLASS_SKILL = {"warrior": "skill_attack", "archer": "skill_ranged", "mage": "skill_magic", "miner": "skill_mining"}
-    _skill_attr  = _CLASS_SKILL.get(char.class_type, "")
-    skill_bonus  = int(getattr(player, _skill_attr, 1.0) or 1.0) * 0.2 if _skill_attr else 0.0
-    rate = tokens_per_minute(char.class_type, char.rarity, token_boost + bank_boost + skill_bonus)
+    if getattr(char, "is_starter", False):
+        rate = STARTER_MINER_TOKENS_DAY / 1440
+    else:
+        bank_boost = min(int((getattr(player, "staked_gold", 0) or 0) // 1_000_000) * 10, 100)
+        _CLASS_SKILL = {"warrior": "skill_attack", "archer": "skill_ranged", "mage": "skill_magic", "miner": "skill_mining"}
+        _skill_attr  = _CLASS_SKILL.get(char.class_type, "")
+        skill_bonus  = int(getattr(player, _skill_attr, 1.0) or 1.0) * 0.2 if _skill_attr else 0.0
+        rate = tokens_per_minute(char.class_type, char.rarity, token_boost + bank_boost + skill_bonus)
 
     minutes_elapsed = max(0.0, (now - last_claim).total_seconds() / 60)
     tokens_earned   = int(minutes_elapsed * rate)
@@ -217,7 +220,10 @@ def char_to_dict(char, bank_boost_pct: int = 0, skill_bonus_pct: float = 0.0) ->
         last = _aware(char.last_claim_at or char.staked_at)
         cap  = min(now, expires)
         mins = max(0.0, (cap - last).total_seconds() / 60)
-        rate = tokens_per_minute(char.class_type, char.rarity, token_boost + bank_boost_pct + skill_bonus_pct)
+        if getattr(char, "is_starter", False):
+            rate = STARTER_MINER_TOKENS_DAY / 1440
+        else:
+            rate = tokens_per_minute(char.class_type, char.rarity, token_boost + bank_boost_pct + skill_bonus_pct)
         pending_tokens = int(mins * rate)
 
     return {

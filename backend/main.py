@@ -129,6 +129,17 @@ def create_tables():
                 conn.commit()
             except Exception:
                 pass
+        # starter miner columns
+        try:
+            conn.execute(text("ALTER TABLE players ADD COLUMN starter_miner_claimed BOOLEAN DEFAULT FALSE"))
+            conn.commit()
+        except Exception:
+            pass
+        try:
+            conn.execute(text("ALTER TABLE characters ADD COLUMN is_starter BOOLEAN DEFAULT FALSE"))
+            conn.commit()
+        except Exception:
+            pass
 
     # Backfill stats for characters that don't have them yet
     _backfill_char_stats()
@@ -208,7 +219,7 @@ def auth_wallet(body: AuthBody, db: Session = Depends(get_db)):
     # 3. Create player on first login, then return full state
     p = db.query(Player).filter(Player.wallet == body.wallet).first()
     if not p:
-        p = Player(wallet=body.wallet, tokens=BOX_COST * 3)
+        p = Player(wallet=body.wallet, tokens=0)
         db.add(p)
         db.commit()
         db.refresh(p)
@@ -382,7 +393,7 @@ class StakeGoldBody(BaseModel):
 def login(body: WalletBody, db: Session = Depends(get_db)):
     p = db.query(Player).filter(Player.wallet == body.wallet).first()
     if not p:
-        p = Player(wallet=body.wallet, tokens=BOX_COST * 3)  # starter tokens
+        p = Player(wallet=body.wallet, tokens=0)  # starter tokens
         db.add(p)
         db.commit()
         db.refresh(p)
@@ -449,9 +460,10 @@ def get_player(wallet: str, db: Session = Depends(get_db)):
             "hitpoints": p.skill_hitpoints or 1.0,
         },
         "pending_skills": pending_skills,
-        "staked_gold":        p.staked_gold or 0,
-        "staked_gold_until":  staked_until.isoformat() if staked_until else None,
-        "bank_boost_pct":     _bank_boost_pct(p),
+        "staked_gold":              p.staked_gold or 0,
+        "staked_gold_until":        staked_until.isoformat() if staked_until else None,
+        "bank_boost_pct":           _bank_boost_pct(p),
+        "starter_miner_claimed":    bool(getattr(p, "starter_miner_claimed", False)),
     }
 
 
@@ -1103,6 +1115,41 @@ def _br_fight(fight_num: int, p_class: str, p_stats: dict,
 
 class BattleRoyaleBody(BaseModel):
     hero_id: int
+
+
+@app.post("/player/{wallet}/claim-starter-miner")
+def claim_starter_miner(wallet: str, db: Session = Depends(get_db)):
+    player = db.query(Player).filter(Player.wallet == wallet).with_for_update().first()
+    if not player:
+        raise HTTPException(404, "Player not found")
+    if getattr(player, "starter_miner_claimed", False):
+        raise HTTPException(400, "Starter miner already claimed on this wallet")
+    if (player.runex or 0) < 1:
+        raise HTTPException(400, "You need at least 1 RuneX in your wallet to claim the starter miner")
+
+    from datetime import timezone as _tz
+    expires = datetime.now(_tz.utc) + timedelta(days=30)
+    stats   = roll_stats("miner", "common")
+    miner   = Character(
+        player_id   = player.id,
+        class_type  = "miner",
+        rarity      = "common",
+        name        = "Starter Miner",
+        expires_at  = expires,
+        is_starter  = True,
+        stat_attack  = stats["attack"],
+        stat_defense = stats["defense"],
+        stat_hp      = stats["hp"],
+        stat_magic   = stats["magic"],
+        stat_ranged  = stats["ranged"],
+        stat_speed   = stats["speed"],
+    )
+    player.starter_miner_claimed = True
+    db.add(miner)
+    db.commit()
+    db.refresh(miner)
+    from game_logic import char_to_dict
+    return {"ok": True, "character": char_to_dict(miner)}
 
 
 @app.post("/player/{wallet}/battle-royale")

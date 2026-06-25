@@ -34,9 +34,10 @@ class Player(Base):
     characters  = relationship("Character", back_populates="player", cascade="all, delete-orphan")
     items       = relationship("Item", back_populates="player", cascade="all, delete-orphan")
     heroes      = relationship("HeroX", back_populates="player", cascade="all, delete-orphan")
-    battle_wins       = Column(Integer,  default=0)
-    staked_gold       = Column(Integer,  default=0)
-    staked_gold_until = Column(DateTime, nullable=True)
+    battle_wins             = Column(Integer,  default=0)
+    staked_gold             = Column(Integer,  default=0)
+    staked_gold_until       = Column(DateTime, nullable=True)
+    starter_miner_claimed   = Column(Boolean,  default=False)
 
 
 class Character(Base):
@@ -52,6 +53,8 @@ class Character(Base):
     last_claim_at = Column(DateTime, nullable=True)
     last_chest_at = Column(DateTime, nullable=True)
     obtained_at   = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    is_starter = Column(Boolean, default=False)  # free trial miner — 100 gp/day, no box drop
 
     # Combat stats — generated on creation, permanent
     stat_attack  = Column(Integer, default=0)

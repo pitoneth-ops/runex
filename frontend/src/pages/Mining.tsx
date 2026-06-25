@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useGameStore } from "../store";
-import { getPlayer, stakeChar, unstakeChar, claimTokens, claimAll, stakeAll, upgradeMiner } from "../api";
+import { getPlayer, stakeChar, unstakeChar, claimTokens, claimAll, stakeAll, upgradeMiner, claimStarterMiner } from "../api";
 import type { Character } from "../api";
 import { OsrsSprite, OsrsIcon } from "../components/OsrsSprite";
 import { CHAR_SPRITES, ARMOR_ICONS, GAME_ICONS } from "../sprites";
@@ -203,6 +203,8 @@ export default function Mining() {
   const [claimingAll,   setClaimingAll] = useState(false);
   const [stakingAll,    setStakingAll]  = useState(false);
   const [claimAllToast, setClaimAllToast] = useState<number | null>(null);
+  const [claimingStarter, setClaimingStarter] = useState(false);
+  const [starterMsg,      setStarterMsg]      = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!wallet) return;
@@ -235,6 +237,20 @@ export default function Mining() {
       setClaimAllToast(res.tokens_claimed);
       const p = await getPlayer(wallet); setPlayer(p);
     } finally { setClaimingAll(false); }
+  }
+
+  async function handleClaimStarter() {
+    if (!wallet || claimingStarter) return;
+    setClaimingStarter(true);
+    setStarterMsg(null);
+    try {
+      await claimStarterMiner(wallet);
+      const p = await getPlayer(wallet); setPlayer(p);
+      setStarterMsg("Starter Miner claimed! It's now in your ready list.");
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? "Could not claim starter miner.";
+      setStarterMsg(msg);
+    } finally { setClaimingStarter(false); }
   }
 
   async function handleStakeAll() {
@@ -366,6 +382,30 @@ export default function Mining() {
           </div>
         ))}
       </div>
+
+      {/* Starter miner claim card */}
+      {(player?.runex ?? 0) >= 1 && (
+        <div className="osrs-panel p-4 flex flex-col gap-3" style={{ borderColor: "rgba(96,165,250,0.4)", background: "rgba(96,165,250,0.05)" }}>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">⛏️</span>
+            <div>
+              <p className="font-bold text-blue-300 text-sm" style={{ fontFamily: "'Cinzel',serif" }}>Free Starter Miner</p>
+              <p className="text-xs text-gray-400">100 gp/day · 30 days · one per wallet · experiment for free</p>
+            </div>
+          </div>
+          {player?.starter_miner_claimed ? (
+            <p className="text-xs text-green-400">✔ Already claimed — check your ready list below.</p>
+          ) : (
+            <button onClick={handleClaimStarter} disabled={claimingStarter}
+                    className="osrs-btn text-sm w-full">
+              {claimingStarter ? "Claiming…" : "🎁 Claim Free Miner"}
+            </button>
+          )}
+          {starterMsg && (
+            <p className={`text-xs ${starterMsg.startsWith("Starter") ? "text-green-400" : "text-red-400"}`}>{starterMsg}</p>
+          )}
+        </div>
+      )}
 
       {miners.length === 0 && (
         <div className="text-center py-16 text-gray-600">

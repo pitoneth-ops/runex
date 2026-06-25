@@ -29,6 +29,7 @@ MINING_TOKENS_DAY: dict[str, int] = {
 }
 
 BOX_COST = 50_000  # tokens to open a box
+STARTER_MINER_TOKENS_DAY = 100  # free trial miner earns 100 gp/day — no bank boost
 
 CHEST_DROP_PER_MIN = 0.00003  # 0.003% per minute
 

@@ -102,6 +102,7 @@ export interface Player {
   staked_gold: number;
   staked_gold_until: string | null;
   bank_boost_pct: number;
+  starter_miner_claimed: boolean;
 }
 
 export const loginPlayer = (wallet: string) =>
@@ -229,3 +230,6 @@ export interface BRResult {
 
 export const battleRoyale = (wallet: string, heroId: number) =>
   api.post<BRResult>(`/player/${wallet}/battle-royale`, { hero_id: heroId }).then(r => r.data);
+
+export const claimStarterMiner = (wallet: string) =>
+  api.post<{ ok: boolean; character: Character }>(`/player/${wallet}/claim-starter-miner`).then(r => r.data);

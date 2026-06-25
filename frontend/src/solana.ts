@@ -5,8 +5,10 @@ if (typeof (globalThis as any).Buffer === "undefined") (globalThis as any).Buffe
 import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,
-  createTransferInstruction,
+  createTransferCheckedInstruction,
   createAssociatedTokenAccountIdempotentInstruction,
+  TOKEN_2022_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 
 export const RUNEX_MINT     = new PublicKey("6AVAUKa9uxQpruHZUinFECpXEh1usRVtzQWK8N2wpump");
@@ -17,8 +19,8 @@ export const RUNEX_DECIMALS = 6;
 export const connection = new Connection(SOLANA_RPC, "confirmed");
 
 /**
- * Transfer `uiAmount` RuneX tokens from the connected Phantom wallet to the treasury.
- * Uses idempotent ATA creation — no RPC pre-check needed, works even if treasury ATA is new.
+ * Transfer `uiAmount` RuneX tokens (Token-2022) from Phantom wallet to treasury.
+ * Pump.fun tokens use TOKEN_2022_PROGRAM_ID — all instructions and ATA derivations must match.
  */
 export async function payRunex(uiAmount: number): Promise<string> {
   const provider = (window as Window & {
@@ -29,14 +31,21 @@ export async function payRunex(uiAmount: number): Promise<string> {
   const payer  = provider.publicKey;
   const rawAmt = BigInt(Math.round(uiAmount * 10 ** RUNEX_DECIMALS));
 
-  const fromATA = await getAssociatedTokenAddress(RUNEX_MINT, payer);
-  const toATA   = await getAssociatedTokenAddress(RUNEX_MINT, TREASURY);
+  // Token-2022: ATA addresses differ from legacy token — must pass TOKEN_2022_PROGRAM_ID
+  const fromATA = await getAssociatedTokenAddress(RUNEX_MINT, payer,    false, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+  const toATA   = await getAssociatedTokenAddress(RUNEX_MINT, TREASURY, false, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
 
   const tx = new Transaction();
 
-  // Idempotent: creates the treasury ATA only if it doesn't exist — no getAccountInfo call needed
-  tx.add(createAssociatedTokenAccountIdempotentInstruction(payer, toATA, TREASURY, RUNEX_MINT));
-  tx.add(createTransferInstruction(fromATA, toATA, payer, rawAmt));
+  // Idempotent ATA creation for treasury (only creates if missing)
+  tx.add(createAssociatedTokenAccountIdempotentInstruction(
+    payer, toATA, TREASURY, RUNEX_MINT, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
+  ));
+
+  // TransferChecked requires mint + decimals — mandatory for Token-2022
+  tx.add(createTransferCheckedInstruction(
+    fromATA, RUNEX_MINT, toATA, payer, rawAmt, RUNEX_DECIMALS, [], TOKEN_2022_PROGRAM_ID,
+  ));
 
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
   tx.recentBlockhash = blockhash;

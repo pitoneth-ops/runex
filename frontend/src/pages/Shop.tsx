@@ -72,7 +72,7 @@ function ChestCard({
           {title}
         </p>
         <p className="text-xs text-center px-8" style={{ color: "#7a6030" }}>
-          Opens the chest and awards a random amount of RuneX.
+          Opens the chest and awards a random amount of wRuneX.
         </p>
 
         {/* Opening spinner */}
@@ -202,7 +202,7 @@ export default function Shop() {
       <ChestCard
         title="RuneX Chest"
         cost={CHEST_COST}
-        rangeLabel="1,500 ~ 10,000 RuneX"
+        rangeLabel="1,500 ~ 10,000 wRuneX"
         sprites={CHEST_SPRITES}
         gold={gold}
         phase={phase1}
@@ -229,7 +229,7 @@ export default function Shop() {
       <ChestCard
         title="Item Chest"
         cost={ITEM_CHEST_COST}
-        rangeLabel="2,500 ~ 5,000 RuneX"
+        rangeLabel="2,500 ~ 5,000 wRuneX"
         sprites={ITEM_CHEST_SPRITES}
         gold={gold}
         phase={phase2}

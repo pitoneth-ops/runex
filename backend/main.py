@@ -307,6 +307,16 @@ def create_tables():
     # Backfill stats for characters that don't have them yet
     _backfill_char_stats()
 
+    # One-time migration: move existing in-game RuneX balance to wRuneX.
+    # Before the wRuneX split, all earned RuneX was stored in player.runex.
+    # Copy it over so existing players don't lose their accumulated balance.
+    try:
+        with engine.connect() as c:
+            c.execute(text("UPDATE players SET wrunex = runex WHERE wrunex = 0 AND runex > 0"))
+            c.commit()
+    except Exception:
+        pass
+
 
 def _backfill_char_stats():
     db = SessionLocal()

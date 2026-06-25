@@ -115,8 +115,9 @@ function ChestCard({
 export default function Shop() {
   const { wallet, player, setPlayer } = useGameStore();
 
-  const gold  = player?.tokens ?? 0;
-  const runex = player?.runex  ?? 0;
+  const gold   = player?.tokens ?? 0;
+  const runex  = player?.runex  ?? 0;   // on-chain wallet balance
+  const wrunex = player?.wrunex ?? 0;   // in-game wRuneX (withdrawable)
 
   // RuneX chest state
   const [phase1,   setPhase1]   = useState<Phase>("idle");
@@ -214,7 +215,7 @@ export default function Shop() {
         <div className="flex items-center gap-2">
           <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={14} />
           <span style={{ color: "#ff6060", fontWeight: 700, fontFamily: "'Cinzel',serif", fontSize: "0.82rem" }}>
-            {runex.toLocaleString()} RuneX
+            {wrunex.toLocaleString()} wRuneX
           </span>
         </div>
       </div>
@@ -306,13 +307,13 @@ export default function Shop() {
           <p className="font-black text-sm" style={{ fontFamily: "'Cinzel',serif", color: "#ff6060" }}>Withdraw RuneX</p>
         </div>
         <p className="text-xs" style={{ color: "#7a6030" }}>
-          Send in-game RuneX to your Solana wallet. Minimum 100 RuneX.
+          Swap wRuneX (in-game) → RuneX (Phantom wallet). Minimum 100 wRuneX.
         </p>
         <div className="flex gap-2">
           <input
             type="number"
             min={100}
-            max={runex}
+            max={wrunex}
             value={withdrawAmt}
             onChange={e => setWithdrawAmt(e.target.value)}
             placeholder="Amount (min 100)"
@@ -321,13 +322,14 @@ export default function Shop() {
           />
           <button
             onClick={handleWithdraw}
-            disabled={withdrawing || !withdrawAmt || parseFloat(withdrawAmt) < 100 || parseFloat(withdrawAmt) > runex}
+            disabled={withdrawing || !withdrawAmt || parseFloat(withdrawAmt) < 100 || parseFloat(withdrawAmt) > wrunex}
             className="osrs-btn-green px-4 text-sm">
-            {withdrawing ? "…" : "Withdraw"}
+            {withdrawing ? "…" : "Swap →"}
           </button>
         </div>
         <p className="text-xs" style={{ color: "#7a6030" }}>
-          Balance: <span style={{ color: "#ff6060", fontWeight: 700 }}>{runex.toLocaleString()} RuneX</span>
+          wRuneX balance: <span style={{ color: "#ff6060", fontWeight: 700 }}>{wrunex.toLocaleString()}</span>
+          {runex > 0 && <span style={{ marginLeft: 8 }}>· Wallet: <span style={{ color: "#a08040" }}>{runex.toLocaleString()} RuneX</span></span>}
         </p>
         {withdrawMsg && (
           <p className={`text-xs font-bold ${withdrawMsg.ok ? "text-green-400" : "text-red-400"}`}>

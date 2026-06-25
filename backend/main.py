@@ -260,6 +260,7 @@ def create_tables():
         ("skill_hitpoints",   "REAL",    1.0),
         ("battle_wins",       "INTEGER", 0),
         ("runex",             "INTEGER", 0),
+        ("wrunex",            "INTEGER", 0),
         ("staked_gold",       "INTEGER", 0),
         ("staked_gold_until", "TEXT",    "NULL"),
         ("starter_miner_claimed", "BOOLEAN", "FALSE"),
@@ -610,7 +611,8 @@ def get_player(wallet: str, db: Session = Depends(get_db)):
     return {
         "wallet":          p.wallet,
         "tokens":          p.tokens,
-        "runex":           p.runex or 0,
+        "runex":           p.runex  or 0,  # on-chain wallet balance (synced on login)
+        "wrunex":          p.wrunex or 0,  # in-game wRuneX (earned, withdrawable)
         "characters":      [char_to_dict(c, bank_boost_pct=bank_boost, skill_bonus_pct=_skill_bonus_pct(p, c.class_type)) for c in chars],
         "inventory":       [item_to_dict(i) for i in items],
         "heroes":          [hero_to_dict(h) for h in heroes],
@@ -973,7 +975,7 @@ def hero_battle(wallet: str, hero_id: int, body: HeroBattleBody, db: Session = D
     hero.last_battle_date   = today
     hero.best_phase         = max(hero.best_phase or 0, phases)
     hero.total_runex_earned = (hero.total_runex_earned or 0) + runex
-    player.runex            = (player.runex or 0) + runex
+    player.wrunex           = (player.wrunex or 0) + runex
 
     # Equipment drops per phase won
     dropped_items = []
@@ -992,7 +994,7 @@ def hero_battle(wallet: str, hero_id: int, body: HeroBattleBody, db: Session = D
         "ok":              True,
         "phases_completed": phases,
         "runex_earned":    runex,
-        "total_runex":     player.runex,
+        "total_wrunex":    player.wrunex,
         "hero":            hero_to_dict(hero),
         "items_dropped":   dropped_items,
     }
@@ -1123,14 +1125,14 @@ def buy_runex_chest(wallet: str, db: Session = Depends(get_db)):
 
     player.tokens  = (player.tokens or 0) - RUNEX_CHEST_COST
     runex_gained   = random.randint(RUNEX_CHEST_MIN, RUNEX_CHEST_MAX)
-    player.runex   = (player.runex or 0) + runex_gained
+    player.wrunex  = (player.wrunex or 0) + runex_gained
 
     db.commit()
     return {
-        "ok":          True,
+        "ok":           True,
         "runex_gained": runex_gained,
-        "tokens":      player.tokens,
-        "runex":       player.runex,
+        "tokens":       player.tokens,
+        "wrunex":       player.wrunex,
     }
 
 
@@ -1140,9 +1142,9 @@ def buy_item_chest(wallet: str, db: Session = Depends(get_db)):
     if (player.tokens or 0) < ITEM_CHEST_COST:
         raise HTTPException(400, f"Requires {ITEM_CHEST_COST:,} Gold")
 
-    player.tokens = (player.tokens or 0) - ITEM_CHEST_COST
-    runex_gained  = random.randint(ITEM_CHEST_RUNEX_MIN, ITEM_CHEST_RUNEX_MAX)
-    player.runex  = (player.runex or 0) + runex_gained
+    player.tokens  = (player.tokens or 0) - ITEM_CHEST_COST
+    runex_gained   = random.randint(ITEM_CHEST_RUNEX_MIN, ITEM_CHEST_RUNEX_MAX)
+    player.wrunex  = (player.wrunex or 0) + runex_gained
 
     item_dropped = None
     if random.random() < ITEM_CHEST_DROP_CHANCE:
@@ -1158,7 +1160,7 @@ def buy_item_chest(wallet: str, db: Session = Depends(get_db)):
         "runex_gained": runex_gained,
         "item_dropped": item_dropped,
         "tokens":       player.tokens,
-        "runex":        player.runex,
+        "wrunex":       player.wrunex,
     }
 
 
@@ -1298,8 +1300,9 @@ def claim_starter_miner(wallet: str, db: Session = Depends(get_db)):
         raise HTTPException(404, "Player not found")
     if getattr(player, "starter_miner_claimed", False):
         raise HTTPException(400, "Starter miner already claimed on this wallet")
-    if (player.runex or 0) < 1:
-        raise HTTPException(400, "You need at least 1 RuneX in your wallet to claim the starter miner")
+    # Gate on having ≥1 RuneX in the actual Solana wallet (not wRuneX)
+    if _get_on_chain_runex(wallet) < 1:
+        raise HTTPException(400, "You need at least 1 RuneX in your Phantom wallet to claim the starter miner")
 
     from datetime import timezone as _tz
     expires = datetime.now(_tz.utc) + timedelta(days=30)
@@ -1376,18 +1379,18 @@ def battle_royale(wallet: str, body: BattleRoyaleBody, db: Session = Depends(get
 
     runex_earned = 0
     if won_all:
-        runex_earned = BR_WIN_RUNEX
-        player.runex = (player.runex or 0) + runex_earned
-        _log_tx(player.id, "battle_royale_win", "Won Battle Royale — 1,000,000 RuneX!", runex_earned, db)
+        runex_earned  = BR_WIN_RUNEX
+        player.wrunex = (player.wrunex or 0) + runex_earned
+        _log_tx(player.id, "battle_royale_win", "Won Battle Royale — 1,000,000 wRuneX!", runex_earned, db)
 
     db.commit()
     return {
-        "ok":          True,
-        "won":         won_all,
-        "fights":      fights,
+        "ok":           True,
+        "won":          won_all,
+        "fights":       fights,
         "runex_earned": runex_earned,
-        "tokens":      player.tokens,
-        "runex":       player.runex or 0,
+        "tokens":       player.tokens,
+        "wrunex":       player.wrunex or 0,
     }
 
 
@@ -1403,10 +1406,10 @@ def withdraw_runex(wallet: str, body: WithdrawRunexBody, db: Session = Depends(g
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
     if body.amount < 100:
-        raise HTTPException(status_code=400, detail="Minimum withdraw is 100 RuneX")
-    player_runex = player.runex or 0
-    if player_runex < body.amount:
-        raise HTTPException(status_code=400, detail=f"Not enough RuneX (have {player_runex})")
+        raise HTTPException(status_code=400, detail="Minimum withdraw is 100 wRuneX")
+    player_wrunex = player.wrunex or 0
+    if player_wrunex < body.amount:
+        raise HTTPException(status_code=400, detail=f"Not enough wRuneX (have {player_wrunex})")
     if not os.getenv("TREASURY_PRIVATE_KEY"):
         raise HTTPException(status_code=503, detail="Withdrawals not yet enabled — treasury key not configured")
 
@@ -1415,15 +1418,15 @@ def withdraw_runex(wallet: str, body: WithdrawRunexBody, db: Session = Depends(g
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    player.runex = player_runex - int(body.amount)
+    player.wrunex = player_wrunex - int(body.amount)
     db.add(Transaction(
-        wallet=wallet,
+        player_id=player.id,
         tx_type="withdraw_runex",
-        description=f"Withdrew {int(body.amount)} RuneX → {sig[:12]}…",
+        description=f"Withdrew {int(body.amount)} wRuneX → RuneX · {sig[:12]}…",
         value=-int(body.amount),
     ))
     db.commit()
-    return {"ok": True, "signature": sig, "runex": player.runex}
+    return {"ok": True, "signature": sig, "wrunex": player.wrunex}
 
 
 # ── Info ──────────────────────────────────────────────────────────────────────

@@ -54,12 +54,12 @@ export default function App() {
                 {(player?.tokens ?? 0).toLocaleString()}
               </span>
             </div>
-            {/* RuneX */}
-            {(player?.runex ?? 0) > 0 && (
+            {/* wRuneX in-game */}
+            {(player?.wrunex ?? 0) > 0 && (
               <div className="flex items-center gap-1">
                 <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={14} />
                 <span style={{ fontFamily: "'Cinzel',serif", color: "#ff6060", fontWeight: 700, fontSize: "0.8rem" }}>
-                  {(player?.runex ?? 0).toLocaleString()}
+                  {(player?.wrunex ?? 0).toLocaleString()} <span style={{ fontSize: "0.65rem", opacity: 0.7 }}>wRX</span>
                 </span>
               </div>
             )}

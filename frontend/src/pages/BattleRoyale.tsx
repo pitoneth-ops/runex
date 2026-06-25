@@ -296,7 +296,7 @@ export default function BattleRoyale() {
               <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={22} />
               <div>
                 <p style={{ fontSize: "0.6rem", color: "#a08040" }}>GRAND PRIZE</p>
-                <p style={{ fontFamily: "'Cinzel',serif", color: "#ff6060", fontWeight: 900, fontSize: "1rem" }}>1,000,000 RuneX</p>
+                <p style={{ fontFamily: "'Cinzel',serif", color: "#ff6060", fontWeight: 900, fontSize: "1rem" }}>1,000,000 wRuneX</p>
               </div>
             </div>
           </div>
@@ -547,7 +547,7 @@ export default function BattleRoyale() {
               <p style={{ color: "#a08040", fontSize: "0.7rem", marginTop: 4 }}>All 7 opponents vanquished</p>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 14, padding: "10px 16px", borderRadius: 10, background: "rgba(255,96,96,0.08)", border: "1px solid rgba(255,96,96,0.2)" }}>
                 <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={26} />
-                <span style={{ fontFamily: "'Cinzel',serif", color: "#ff6060", fontSize: "1.3rem", fontWeight: 900 }}>+1,000,000 RuneX</span>
+                <span style={{ fontFamily: "'Cinzel',serif", color: "#ff6060", fontSize: "1.3rem", fontWeight: 900 }}>+1,000,000 wRuneX</span>
               </div>
             </>
           ) : (

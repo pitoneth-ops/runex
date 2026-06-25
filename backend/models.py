@@ -20,7 +20,8 @@ class Player(Base):
     id         = Column(Integer, primary_key=True, index=True)
     wallet     = Column(String, unique=True, index=True)
     tokens     = Column(Integer, default=0)   # Gold (GP) earned from staking
-    runex      = Column(Integer, default=0)   # RuneX earned from HeroX battles
+    runex      = Column(Integer, default=0)   # on-chain RuneX balance (synced from wallet on login)
+    wrunex     = Column(Integer, default=0)   # in-game wRuneX earned from battles/chests (withdrawable)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Skills — stored as float; level = floor(value), progress = value % 1

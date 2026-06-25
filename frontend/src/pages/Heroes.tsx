@@ -245,13 +245,13 @@ function BattleOverlay({ hero, wallet, onClose, onDone }: {
                     : <p style={{ fontFamily: "'Cinzel',serif", color: "#ef4444", fontSize: "0.95rem", fontWeight: 900 }}>💀 Fell at Phase 1</p>
                 }
                 <p className="text-xs text-gray-400 mt-1">
-                  {completedPhases === 0 ? "No RuneX earned this run" : `Completed ${completedPhases} phase${completedPhases > 1 ? "s" : ""}`}
+                  {completedPhases === 0 ? "No wRuneX earned this run" : `Completed ${completedPhases} phase${completedPhases > 1 ? "s" : ""}`}
                 </p>
                 {totalRunex > 0 && (
                   <div className="mt-3 flex items-center justify-center gap-2">
                     <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={24} />
                     <span style={{ fontFamily: "'Cinzel',serif", color: "#ffcc00", fontSize: "1.3rem", fontWeight: 900 }}>
-                      +{fmtRunex(totalRunex)} RuneX
+                      +{fmtRunex(totalRunex)} wRuneX
                     </span>
                   </div>
                 )}
@@ -500,10 +500,10 @@ export default function Heroes() {
           <p style={{ color: "#ffcc00", fontWeight: 700, fontFamily: "'Cinzel',serif" }}>{(player?.tokens ?? 0).toLocaleString()}</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-gray-500">RuneX — from battles</p>
+          <p className="text-xs text-gray-500">wRuneX — in-game balance</p>
           <div className="flex items-center gap-1 justify-end">
             <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={16} />
-            <p style={{ color: "#ff6060", fontWeight: 700, fontFamily: "'Cinzel',serif" }}>{(player?.runex ?? 0).toLocaleString()}</p>
+            <p style={{ color: "#ff6060", fontWeight: 700, fontFamily: "'Cinzel',serif" }}>{(player?.wrunex ?? 0).toLocaleString()}</p>
           </div>
         </div>
       </div>

@@ -184,11 +184,11 @@ export default function Home() {
             </div>
             <div style={{ width: 1, background: "#2a1a00" }} />
             <div>
-              <p style={{ color: "#6b4f10", fontSize: "0.6rem" }}>RUNEX</p>
+              <p style={{ color: "#6b4f10", fontSize: "0.6rem" }}>wRUNEX</p>
               <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "center" }}>
                 <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={14} />
                 <p style={{ fontFamily: "'Cinzel',serif", color: "#ff6060", fontSize: "1.1rem", fontWeight: 900 }}>
-                  {(player.runex ?? 0).toLocaleString()}
+                  {(player.wrunex ?? 0).toLocaleString()}
                 </p>
               </div>
             </div>

@@ -93,7 +93,8 @@ export interface HeroX {
 export interface Player {
   wallet: string;
   tokens: number;
-  runex: number;
+  runex: number;    // on-chain wallet balance (used to gate minting/battle entry)
+  wrunex: number;   // in-game wRuneX earned from gameplay (withdrawable)
   characters: Character[];
   inventory: CharacterItem[];
   heroes: HeroX[];
@@ -156,18 +157,18 @@ export const burnHero = (wallet: string, heroId: number) =>
   api.delete<{ ok: boolean }>(`/player/${wallet}/hero/${heroId}`).then(r => r.data);
 
 export const buyRunexChest = (wallet: string) =>
-  api.post<{ ok: boolean; runex_gained: number; tokens: number; runex: number }>(
+  api.post<{ ok: boolean; runex_gained: number; tokens: number; wrunex: number }>(
     `/player/${wallet}/shop/runex-chest`
   ).then(r => r.data);
 
 export const submitHeroBattle = (wallet: string, heroId: number, phasesCompleted: number) =>
-  api.post<{ ok: boolean; phases_completed: number; runex_earned: number; total_runex: number; hero: HeroX; items_dropped: CharacterItem[] }>(
+  api.post<{ ok: boolean; phases_completed: number; runex_earned: number; total_wrunex: number; hero: HeroX; items_dropped: CharacterItem[] }>(
     `/player/${wallet}/hero/${heroId}/battle`,
     { phases_completed: phasesCompleted }
   ).then(r => r.data);
 
 export const buyItemChest = (wallet: string) =>
-  api.post<{ ok: boolean; runex_gained: number; item_dropped: CharacterItem | null; tokens: number; runex: number }>(
+  api.post<{ ok: boolean; runex_gained: number; item_dropped: CharacterItem | null; tokens: number; wrunex: number }>(
     `/player/${wallet}/shop/item-chest`
   ).then(r => r.data);
 
@@ -226,7 +227,7 @@ export interface BRResult {
   fights: BRFight[];
   runex_earned: number;
   tokens: number;
-  runex: number;
+  wrunex: number;
 }
 
 export const battleRoyale = (wallet: string, heroId: number, txSignature: string) =>
@@ -236,4 +237,4 @@ export const claimStarterMiner = (wallet: string) =>
   api.post<{ ok: boolean; character: Character }>(`/player/${wallet}/claim-starter-miner`).then(r => r.data);
 
 export const withdrawRunex = (wallet: string, amount: number) =>
-  api.post<{ ok: boolean; signature: string; runex: number }>(`/player/${wallet}/withdraw-runex`, { amount }).then(r => r.data);
+  api.post<{ ok: boolean; signature: string; wrunex: number }>(`/player/${wallet}/withdraw-runex`, { amount }).then(r => r.data);

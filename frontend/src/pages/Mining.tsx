@@ -3,7 +3,7 @@ import { useGameStore } from "../store";
 import { getPlayer, stakeChar, unstakeChar, claimTokens, claimAll, stakeAll, upgradeMiner } from "../api";
 import type { Character } from "../api";
 import { OsrsSprite, OsrsIcon } from "../components/OsrsSprite";
-import { CHAR_SPRITES, ARMOR_ICONS, GAME_ICONS } from "../sprites";
+import { CHAR_SPRITES, ARMOR_ICONS, GAME_ICONS, STARTER_MINER_SPRITE } from "../sprites";
 
 const RARITY_COLOR: Record<string, string> = {
   common: "#9ca3af", rare: "#60a5fa", epic: "#c084fc", legendary: "#fbbf24",
@@ -46,7 +46,7 @@ function MinerCard({ char, wallet, ownedStones, onRefresh }: {
   const bg     = RARITY_BG[char.rarity];
   const isExpired = char.days_left <= 0 && char.hours_left <= 0;
   const urgency   = char.days_left <= 3 && !isExpired;
-  const spriteSrcs = CHAR_SPRITES["miner"]?.[char.rarity] ?? [];
+  const spriteSrcs = char.is_starter ? STARTER_MINER_SPRITE : (CHAR_SPRITES["miner"]?.[char.rarity] ?? []);
   const pickaxeSrc = ARMOR_ICONS["miner"]?.[char.rarity] ?? "";
 
   async function handleStake() {
@@ -134,10 +134,14 @@ function MinerCard({ char, wallet, ownedStones, onRefresh }: {
           </div>
         )}
 
-        <p className="text-xs text-gray-600">⛏️ Miners drop Upgrade Stones while mining — collect to evolve them.</p>
+        {!char.is_starter && <p className="text-xs text-gray-600">⛏️ Miners drop Upgrade Stones while mining — collect to evolve them.</p>}
 
-        {/* Upgrade panel — shown when not staked and not legendary */}
-        {char.rarity !== "legendary" && (
+        {char.is_starter && (
+          <p className="text-xs" style={{ color: "#6b7280" }}>🎁 Trial miner — cannot be upgraded. Mint a box to get a real miner.</p>
+        )}
+
+        {/* Upgrade panel — hidden for starter miners */}
+        {!char.is_starter && char.rarity !== "legendary" && (
           <div className="rounded-xl px-3 py-2.5 space-y-2"
                style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(107,79,16,0.35)" }}>
             <div className="flex items-center justify-between">
@@ -172,7 +176,7 @@ function MinerCard({ char, wallet, ownedStones, onRefresh }: {
           </div>
         )}
 
-        {char.rarity === "legendary" && (
+        {!char.is_starter && char.rarity === "legendary" && (
           <div className="rounded-xl px-3 py-2 text-center"
                style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.2)" }}>
             <p className="text-xs font-black" style={{ color: "#fbbf24" }}>🟡 Max Rarity — Legendary</p>

@@ -165,6 +165,13 @@ export const HERO_MONSTER_SPRITES: Record<number, string[]> = {
 
 export const RUNEX_ICON = [`${WIKI}/Blood_rune.png`, `${WIKI}/Death_rune.png`];
 
+// Starter miner — distinct NPC so it's visually separate from regular miners
+export const STARTER_MINER_SPRITE = [
+  `${WIKI}/Nulodion_chathead.png`,
+  `${WIKI}/Thurgo_chathead.png`,
+  `${WIKI}/Mining_helmet_chathead.png`,
+];
+
 export const SKILL_CAPE_SPRITES: Record<string, string[]> = {
   attack:    [`${WIKI}/Attack_cape.png`],
   ranged:    [`${WIKI}/Ranging_cape.png`],

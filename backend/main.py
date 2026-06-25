@@ -661,6 +661,8 @@ def upgrade_miner_endpoint(wallet: str, char_id: int, db: Session = Depends(get_
 
     if char.class_type != "miner":
         raise HTTPException(400, "Only miners can be upgraded")
+    if getattr(char, "is_starter", False):
+        raise HTTPException(400, "Starter miners cannot be upgraded")
     if char.is_staked:
         raise HTTPException(400, "Stop mining before upgrading")
 

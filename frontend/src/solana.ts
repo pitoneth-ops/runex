@@ -11,7 +11,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 
-export const TREASURY       = new PublicKey("2yeGpBaCFF8Q4jNFEmncL677wxjKaDHFnr7v5YGVX2T6");
+export const TREASURY       = new PublicKey("Q9MW41RZNygw2Uhg8LSVbJ333UW3DS8A7hnnwtM2eS1");
 export const RUNEX_MINT     = new PublicKey("6AVAUKa9uxQpruHZUinFECpXEh1usRVtzQWK8N2wpump");
 export const SOLANA_RPC     = "https://lb.drpc.live/solana/An6mizDna0g2rZjqFdDX1KlA_FSOXTcR8beSIqM_iWcm";
 export const RUNEX_DECIMALS = 6;

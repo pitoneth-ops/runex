@@ -30,8 +30,8 @@ const RARITIES = [
 
 const SKILLS_DATA = [
   { key: "attack",    name: "Attack",    emoji: "⚔",  cls: "Warriors",  clsColor: "#ef4444", sprite: [`${W}/Attack_icon_(detail).png`], cape: "Attack Cape",    capeStat: "+12 ATK · +3 Vit" },
-  { key: "ranged",    name: "Ranged",    emoji: "🏹", cls: "Archers",   clsColor: "#60a5fa", sprite: [`${W}/Ranged_icon_(detail).png`], cape: "Ranged Cape",    capeStat: "+12 Destreza · +3 Vit" },
-  { key: "magic",     name: "Magic",     emoji: "🔮", cls: "Mages",     clsColor: "#a855f7", sprite: [`${W}/Magic_icon_(detail).png`],  cape: "Magic Cape",     capeStat: "+12 Magia · +3 Vit" },
+  { key: "ranged",    name: "Ranged",    emoji: "🏹", cls: "Archers",   clsColor: "#60a5fa", sprite: [`${W}/Ranged_icon_(detail).png`], cape: "Ranged Cape",    capeStat: "+12 Dexterity · +3 Vit" },
+  { key: "magic",     name: "Magic",     emoji: "🔮", cls: "Mages",     clsColor: "#a855f7", sprite: [`${W}/Magic_icon_(detail).png`],  cape: "Magic Cape",     capeStat: "+12 Magic · +3 Vit" },
   { key: "mining",    name: "Mining",    emoji: "⛏",  cls: "Miners",    clsColor: "#9ca3af", sprite: [`${W}/Mining_icon_(detail).png`], cape: "Mining Cape",    capeStat: "+10 Vit · +3 ATK" },
   { key: "hitpoints", name: "Hitpoints", emoji: "❤",  cls: "Everyone",  clsColor: "#fbbf24", sprite: [`${W}/Hitpoints_icon_(detail).png`], cape: "Hitpoints Cape", capeStat: "+18 Vit · +3 ATK" },
 ];
@@ -45,15 +45,15 @@ const ITEM_TYPES = [
 ];
 
 const EQUIP_SLOTS = [
-  { emoji: "⛑",  name: "Head",   stat: "Vitalidade",    srcs: EQUIP_ITEM_SPRITES.head?.legendary   ?? [] },
-  { emoji: "📿", name: "Neck",   stat: "Vit / Magia",   srcs: EQUIP_ITEM_SPRITES.neck?.legendary   ?? [] },
-  { emoji: "🧣", name: "Cape",   stat: "Vit / Destreza",srcs: EQUIP_ITEM_SPRITES.cape?.legendary   ?? [] },
-  { emoji: "⚔",  name: "Weapon", stat: "ATK/Dest/Magia",srcs: EQUIP_ITEM_SPRITES.weapon_atk?.legendary ?? [] },
-  { emoji: "🦺", name: "Body",   stat: "Vitalidade",    srcs: EQUIP_ITEM_SPRITES.body?.legendary   ?? [] },
-  { emoji: "🛡", name: "Shield", stat: "Vitalidade",    srcs: EQUIP_ITEM_SPRITES.shield?.legendary  ?? [] },
-  { emoji: "👖", name: "Legs",   stat: "Vitalidade",    srcs: EQUIP_ITEM_SPRITES.legs?.legendary   ?? [] },
-  { emoji: "🧤", name: "Hands",  stat: "ATK/Dest/Magia",srcs: EQUIP_ITEM_SPRITES.hands?.legendary  ?? [] },
-  { emoji: "👟", name: "Feet",   stat: "Vit / Destreza",srcs: EQUIP_ITEM_SPRITES.feet?.legendary   ?? [] },
+  { emoji: "⛑",  name: "Head",   stat: "Vitality",      srcs: EQUIP_ITEM_SPRITES.head?.legendary   ?? [] },
+  { emoji: "📿", name: "Neck",   stat: "Vit / Magic",   srcs: EQUIP_ITEM_SPRITES.neck?.legendary   ?? [] },
+  { emoji: "🧣", name: "Cape",   stat: "Vit / Dexterity",srcs: EQUIP_ITEM_SPRITES.cape?.legendary  ?? [] },
+  { emoji: "⚔",  name: "Weapon", stat: "ATK/Dex/Magic", srcs: EQUIP_ITEM_SPRITES.weapon_atk?.legendary ?? [] },
+  { emoji: "🦺", name: "Body",   stat: "Vitality",      srcs: EQUIP_ITEM_SPRITES.body?.legendary   ?? [] },
+  { emoji: "🛡", name: "Shield", stat: "Vitality",      srcs: EQUIP_ITEM_SPRITES.shield?.legendary  ?? [] },
+  { emoji: "👖", name: "Legs",   stat: "Vitality",      srcs: EQUIP_ITEM_SPRITES.legs?.legendary   ?? [] },
+  { emoji: "🧤", name: "Hands",  stat: "ATK/Dex/Magic", srcs: EQUIP_ITEM_SPRITES.hands?.legendary  ?? [] },
+  { emoji: "👟", name: "Feet",   stat: "Vit / Dexterity",srcs: EQUIP_ITEM_SPRITES.feet?.legendary  ?? [] },
   { emoji: "💍", name: "Ring",   stat: "Any stat",      srcs: EQUIP_ITEM_SPRITES.ring?.legendary   ?? [] },
 ];
 
@@ -84,7 +84,7 @@ export default function Wiki() {
     { id: "items",      label: "🛡 Items"    },
     { id: "economy",    label: "💰 Economy"  },
     { id: "royale",     label: "👑 Royale"   },
-    { id: "currencies", label: "💎 Moedas"   },
+    { id: "currencies", label: "💎 Currencies" },
   ];
 
   return (
@@ -357,7 +357,7 @@ export default function Wiki() {
             </div>
 
             <div style={{ ...panel, fontSize: "0.72rem", color: "#a08040", lineHeight: 1.7 }}>
-              <strong style={{ color: "#ffcc00" }}>Stat guide:</strong> Match equipment to your hero's class — give Berserkers ATK weapons, Rangers Destreza bows, Sorcerers Magia staves. Armor pieces always give Vitalidade — best on Paladins.
+              <strong style={{ color: "#ffcc00" }}>Stat guide:</strong> Match equipment to your hero's class — give Berserkers ATK weapons, Rangers Dexterity bows, Sorcerers Magic staves. Armor pieces always give Vitality — best on Paladins.
             </div>
           </div>
         )}

@@ -47,7 +47,7 @@ const STAT_COLOR: Record<string, string> = {
   vitalidade: "#4ade80", atk: "#ef4444", destreza: "#fbbf24", magia: "#c084fc",
 };
 const STAT_LABEL: Record<string, string> = {
-  vitalidade: "Vita", atk: "Atk", destreza: "Des", magia: "Mag",
+  vitalidade: "Vita", atk: "Atk", destreza: "Dex", magia: "Mag",
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

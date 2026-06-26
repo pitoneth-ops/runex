@@ -16,8 +16,8 @@ type SkillKey = "attack" | "hitpoints" | "mining" | "magic" | "ranged";
 
 const CAPE_STAT_LABEL: Record<SkillKey, string> = {
   attack:    "+12 ATK · +3 Vit",
-  ranged:    "+12 Destreza · +3 Vit",
-  magic:     "+12 Magia · +3 Vit",
+  ranged:    "+12 Dexterity · +3 Vit",
+  magic:     "+12 Magic · +3 Vit",
   mining:    "+10 Vit · +3 ATK",
   hitpoints: "+18 Vit · +3 ATK",
 };

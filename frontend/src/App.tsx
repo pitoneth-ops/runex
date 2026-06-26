@@ -67,17 +67,20 @@ export default function App() {
       <header className="sticky top-0 z-50 px-4 py-2 flex items-center justify-between"
               style={{ background: "linear-gradient(180deg,#2a1f08,#1a1200)", borderBottom: "2px solid #6b4f10",
                        boxShadow: "0 2px 8px rgba(0,0,0,0.6)" }}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center" style={{ gap: 14 }}>
           <span onClick={() => navigate("/")} style={{ fontFamily: "'Cinzel',serif", fontWeight: 900, fontSize: "1.1rem", color: "#ffcc00",
                          textShadow: "0 0 12px rgba(255,204,0,0.4)", cursor: "pointer" }}>
             ⚔ RuneX
           </span>
           <a href="https://x.com/rune_Xsol" target="_blank" rel="noopener noreferrer"
-             style={{ display: "flex", alignItems: "center", color: "#a08040", opacity: 0.75,
-                      textDecoration: "none", transition: "opacity 0.15s" }}
+             style={{ display: "flex", alignItems: "center", justifyContent: "center",
+                      width: 24, height: 24, borderRadius: 6,
+                      background: "#000", color: "#fff",
+                      textDecoration: "none", flexShrink: 0,
+                      transition: "opacity 0.15s", opacity: 0.9 }}
              onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
-             onMouseLeave={e => (e.currentTarget.style.opacity = "0.75")}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+             onMouseLeave={e => (e.currentTarget.style.opacity = "0.9")}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.91-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
             </svg>
           </a>

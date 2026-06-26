@@ -164,15 +164,30 @@ def _send_runex_from_treasury(to_wallet: str, ui_amount: float) -> str:
     player_pk = _base58.b58decode(to_wallet)
     raw_amt   = int(round(ui_amount * 10 ** 6))  # RuneX has 6 decimals
 
+    def _is_on_ed25519_curve(b: bytes) -> bool:
+        """Return True if b (32 bytes compressed Edwards point) is on Ed25519."""
+        p = (1 << 255) - 19
+        d = (-121665 * pow(121666, p - 2, p)) % p
+        y = int.from_bytes(b, "little") & ((1 << 255) - 1)
+        if y >= p:
+            return False
+        y2 = y * y % p
+        u = (y2 - 1) % p
+        v = (d * y2 + 1) % p
+        if v == 0:
+            return u == 0
+        x2 = u * pow(v, p - 2, p) % p
+        if x2 == 0:
+            return True
+        return pow(x2, (p - 1) // 2, p) == 1
+
     def _find_ata(wallet: bytes, mint: bytes) -> bytes:
         """Derive Token-2022 Associated Token Account via find_program_address."""
         prefix = wallet + TOKEN_2022 + mint
         for nonce in range(255, -1, -1):
             candidate = hashlib.sha256(prefix + bytes([nonce]) + ASSOC_TOKEN + b"ProgramDerivedAddress").digest()
-            try:
-                VerifyKey(candidate)  # succeeds → on Ed25519 curve → not a valid PDA
-            except Exception:
-                return candidate      # off-curve → valid PDA
+            if not _is_on_ed25519_curve(candidate):   # off-curve → valid PDA
+                return candidate
         raise ValueError("ATA derivation failed")
 
     source_ata = _find_ata(treasury_pk, mint_pk)

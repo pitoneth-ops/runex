@@ -233,8 +233,17 @@ def _send_runex_from_treasury(to_wallet: str, ui_amount: float) -> str:
     }, timeout=15).json()
 
     if "error" in send_resp:
-        raise ValueError(f"RPC error: {send_resp['error'].get('message', send_resp['error'])}")
-    return send_resp["result"]
+        err = send_resp["error"]
+        msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+        # Include logs if available (simulation failure details)
+        logs = (send_resp.get("error") or {}).get("data", {})
+        if isinstance(logs, dict) and logs.get("logs"):
+            msg += " | " + " | ".join(logs["logs"][-3:])
+        raise ValueError(f"RPC: {msg}")
+    result = send_resp.get("result")
+    if not result:
+        raise ValueError(f"RPC returned no signature: {send_resp}")
+    return result
 
 
 def _migrate(stmt: str):
@@ -1425,7 +1434,8 @@ def withdraw_runex(wallet: str, body: WithdrawRunexBody, db: Session = Depends(g
 
     try:
         sig = _send_runex_from_treasury(wallet, body.amount)
-    except ValueError as e:
+    except Exception as e:
+        import traceback; traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
     player.wrunex = player_wrunex - int(body.amount)

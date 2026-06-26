@@ -56,8 +56,8 @@ app.add_middleware(
 
 
 # ── On-chain RuneX ────────────────────────────────────────────────────────────
-_RUNEX_MINT      = "6AVAUKa9uxQpruHZUinFECpXEh1usRVtzQWK8N2wpump"
-_TREASURY_WALLET = "2yeGpBaCFF8Q4jNFEmncL677wxjKaDHFnr7v5YGVX2T6"
+_RUNEX_MINT      = os.getenv("RUNEX_MINT", "6AVAUKa9uxQpruHZUinFECpXEh1usRVtzQWK8N2wpump")
+_TREASURY_WALLET = "Q9MW41RZNygw2Uhg8LSVbJ333UW3DS8A7hnnwtM2eS1"
 _SOLANA_RPC      = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
 BOX_COST_RUNEX   = 50_000   # RuneX required to open a Mint Box
 
@@ -1568,7 +1568,9 @@ def withdraw_runex(wallet: str, body: WithdrawRunexBody, db: Session = Depends(g
 @app.get("/info")
 def game_info():
     return {
-        "box_cost":   BOX_COST,
-        "expiry_days": EXPIRY_DAYS,
+        "box_cost":          BOX_COST,
+        "expiry_days":       EXPIRY_DAYS,
         "chest_drop_per_min": 0.003,
+        "runex_mint":        _RUNEX_MINT,
+        "treasury":          _TREASURY_WALLET,
     }

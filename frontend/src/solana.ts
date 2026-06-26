@@ -12,7 +12,7 @@ import {
 } from "@solana/spl-token";
 
 export const TREASURY       = new PublicKey("Q9MW41RZNygw2Uhg8LSVbJ333UW3DS8A7hnnwtM2eS1");
-export const RUNEX_MINT     = new PublicKey("6AVAUKa9uxQpruHZUinFECpXEh1usRVtzQWK8N2wpump");
+export const RUNEX_MINT     = new PublicKey("8EHVbfNW6GMW6oRKqiHxYkrMe1VoKAPgU2ZjP1H8pump");
 export const SOLANA_RPC     = "https://lb.drpc.live/solana/An6mizDna0g2rZjqFdDX1KlA_FSOXTcR8beSIqM_iWcm";
 export const RUNEX_DECIMALS = 6;
 

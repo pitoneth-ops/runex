@@ -11,6 +11,7 @@ export default defineConfig({
     alias: {
       buffer: "buffer/",
     },
+    dedupe: ["@solana/web3.js", "@solana/spl-token"],
   },
   server: {
     port: 5173,

@@ -258,6 +258,25 @@ def _send_runex_from_treasury(to_wallet: str, ui_amount: float) -> str:
     result = send_resp.get("result")
     if not result:
         raise ValueError(f"RPC returned no signature: {send_resp}")
+
+    # Confirm the tx actually landed (up to 20s)
+    import time as _time
+    for _ in range(6):
+        _time.sleep(3)
+        st = _requests.post(_SOLANA_RPC, json={
+            "jsonrpc": "2.0", "id": 1,
+            "method": "getSignatureStatuses",
+            "params": [[result], {"searchTransactionHistory": True}],
+        }, timeout=10).json()
+        statuses = (st.get("result") or {}).get("value") or []
+        s = statuses[0] if statuses else None
+        if s is None:
+            continue
+        if s.get("err"):
+            raise ValueError(f"TX failed on-chain: {s['err']}")
+        if s.get("confirmationStatus") in ("confirmed", "finalized"):
+            return result
+    # Timed out waiting — return sig anyway (most likely succeeded)
     return result
 
 

@@ -44,7 +44,7 @@ export default function App() {
   const wrunex = player?.wrunex ?? 0;
 
   async function handleWithdraw() {
-    const amt = parseFloat(withdrawAmt);
+    const amt = Math.floor(parseFloat(withdrawAmt));
     if (!wallet || !amt || amt < 100 || withdrawing) return;
     setWithdrawing(true);
     setWithdrawMsg(null);
@@ -144,9 +144,9 @@ export default function App() {
             </p>
             <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
               <input
-                type="number" min={100} max={wrunex}
+                type="number" min={100} max={wrunex} step={1}
                 value={withdrawAmt}
-                onChange={e => setWithdrawAmt(e.target.value)}
+                onChange={e => setWithdrawAmt(String(Math.floor(Number(e.target.value))))}
                 placeholder="Amount (min 100)"
                 style={{
                   flex: 1, borderRadius: 8, padding: "7px 10px", fontSize: "0.8rem", fontWeight: 700,

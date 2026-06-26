@@ -89,7 +89,7 @@ function CharReveal({ char, onMintAgain, onView }: { char: Character; onMintAgai
 type Phase = "idle" | "shaking" | "open" | "revealed";
 
 export default function Mint() {
-  const { wallet, player, setPlayer, mintAddress } = useGameStore();
+  const { wallet, player, setPlayer } = useGameStore();
   const [phase, setPhase]           = useState<Phase>("idle");
   const [error, setError]           = useState("");
   const [result, setResult]         = useState<Character | null>(null);
@@ -123,7 +123,7 @@ export default function Mint() {
     // 1. Send RuneX on-chain → treasury, get signature
     let txSig: string;
     try {
-      txSig = await payRunex(BOX_COST, mintAddress);
+      txSig = await payRunex(BOX_COST);
     } catch (e: unknown) {
       const msg = (e as Error)?.message ?? "Transaction failed";
       setError(msg.includes("rejected") ? "Transaction cancelled." : `Wallet error: ${msg}`);

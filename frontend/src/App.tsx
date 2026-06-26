@@ -1,5 +1,5 @@
 import { Routes, Route, NavLink, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useGameStore } from "./store";
 import Home from "./pages/Home";
 import Characters from "./pages/Characters";
@@ -16,7 +16,7 @@ import History from "./pages/History";
 import BattleRoyale from "./pages/BattleRoyale";
 import { OsrsSprite, OsrsIcon } from "./components/OsrsSprite";
 import { GAME_ICONS, RUNEX_ICON } from "./sprites";
-import { withdrawRunex, getPlayer, getInfo } from "./api";
+import { withdrawRunex, getPlayer } from "./api";
 
 const NAV = [
   { to: "/",           label: "Home"      },
@@ -38,9 +38,6 @@ export default function App() {
   const { wallet, player, setPlayer } = useGameStore();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    getInfo().then(info => useGameStore.getState().setMintAddress(info.runex_mint)).catch(() => {});
-  }, []);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [withdrawAmt,  setWithdrawAmt]  = useState("");
   const [withdrawing,  setWithdrawing]  = useState(false);

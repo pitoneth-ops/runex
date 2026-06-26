@@ -59,6 +59,7 @@ app.add_middleware(
 _RUNEX_MINT      = "6AVAUKa9uxQpruHZUinFECpXEh1usRVtzQWK8N2wpump"
 _TREASURY_WALLET = "2yeGpBaCFF8Q4jNFEmncL677wxjKaDHFnr7v5YGVX2T6"
 _SOLANA_RPC      = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com")
+BOX_COST_RUNEX   = 50_000   # RuneX required to open a Mint Box
 
 
 def _get_on_chain_runex(wallet: str) -> int:

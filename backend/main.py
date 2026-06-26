@@ -21,7 +21,7 @@ from game_logic import (
     equip_item, unequip_item,
     char_to_dict, item_to_dict,
 )
-from character_data import EXPIRY_DAYS, BOX_COST, CLASS_EMOJI, RARITY_EMOJI, roll_stats
+from character_data import EXPIRY_DAYS, BOX_COST, CLASS_EMOJI, RARITY_EMOJI, roll_stats, roll_rarity, roll_class
 from hero_data import (
     roll_hero_class, roll_hero_rarity, roll_hero_stats,
     HERO_MINT_COST, MAX_HEROES, HERO_PRIMARY, HERO_RARITY_EMOJI,
@@ -362,6 +362,57 @@ def create_tables():
         pass
 
     _restore_failed_withdraw_2026()
+    _compensate_failed_mints_2026()
+
+
+def _compensate_failed_mints_2026():
+    """Give 2 characters to the player who lost 2×50,000 RuneX to the BOX_COST_RUNEX NameError bug."""
+    try:
+        db = SessionLocal()
+        try:
+            with engine.connect() as c:
+                done = c.execute(text(
+                    "SELECT COUNT(*) FROM transactions WHERE tx_type = 'mint_compensate_2026'"
+                )).scalar()
+                if done:
+                    return
+                row = c.execute(text(
+                    "SELECT player_id FROM transactions WHERE tx_type = 'wrunex_restore_2026' LIMIT 1"
+                )).first()
+                if not row:
+                    return
+                pid = row[0]
+                c.execute(text(
+                    "INSERT INTO transactions (player_id, tx_type, description, value, created_at) "
+                    "VALUES (:pid, 'mint_compensate_2026', 'Compensate: 2 chars for failed mints (BOX_COST_RUNEX bug)', 0, :ts)"
+                ), {"pid": pid, "ts": datetime.now(timezone.utc).isoformat()})
+                c.commit()
+
+            now = datetime.now(timezone.utc)
+            for _ in range(2):
+                rarity     = roll_rarity()
+                class_type = roll_class()
+                s          = roll_stats(class_type, rarity)
+                char = Character(
+                    player_id    = pid,
+                    class_type   = class_type,
+                    rarity       = rarity,
+                    expires_at   = now + timedelta(days=EXPIRY_DAYS[rarity]),
+                    obtained_at  = now,
+                    stat_attack  = s["attack"],
+                    stat_defense = s["defense"],
+                    stat_hp      = s["hp"],
+                    stat_magic   = s["magic"],
+                    stat_ranged  = s["ranged"],
+                    stat_speed   = s["speed"],
+                )
+                db.add(char)
+            db.commit()
+            print(f"[compensate_failed_mints_2026] Gave 2 characters to player {pid}")
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[compensate_failed_mints_2026] {e}")
 
 
 def _restore_failed_withdraw_2026():

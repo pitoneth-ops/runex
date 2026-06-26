@@ -17,44 +17,59 @@ export const RUNEX_DECIMALS = 6;
 
 export const connection = new Connection(SOLANA_RPC, "confirmed");
 
-/**
- * Transfer `uiAmount` RuneX tokens (Token-2022) from Phantom wallet to treasury.
- * Pump.fun tokens use TOKEN_2022_PROGRAM_ID — all instructions and ATA derivations must match.
- */
 export async function payRunex(uiAmount: number, mintStr: string): Promise<string> {
-  const provider = (window as Window & {
-    solana?: { publicKey: PublicKey; signTransaction: (tx: Transaction) => Promise<Transaction> };
-  }).solana;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const provider = (window as any).solana;
   if (!provider?.publicKey) throw new Error("Wallet not connected");
 
-  // Re-wrap through our PublicKey to avoid Phantom's internal web3.js version conflicts
-  const payer   = new PublicKey(provider.publicKey.toString());
-  const mint    = new PublicKey(mintStr);
-  const rawAmt  = BigInt(Math.round(uiAmount * 10 ** RUNEX_DECIMALS));
+  let step = "payer";
+  try {
+    const payer  = new PublicKey(provider.publicKey.toString());
 
-  // allowOwnerOffCurve=true skips isOnCurve() which triggers the version-mismatch 'Im' error
-  const fromATA = getAssociatedTokenAddressSync(mint, payer,    true, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
-  const toATA   = getAssociatedTokenAddressSync(mint, TREASURY, true, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+    step = "mint";
+    const mint   = new PublicKey(mintStr);
 
-  const tx = new Transaction();
+    step = "amount";
+    const rawAmt = BigInt(Math.round(uiAmount * 10 ** RUNEX_DECIMALS));
 
-  // Idempotent ATA creation for treasury (only creates if missing)
-  tx.add(createAssociatedTokenAccountIdempotentInstruction(
-    payer, toATA, TREASURY, mint, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
-  ));
+    step = "fromATA";
+    const fromATA = getAssociatedTokenAddressSync(mint, payer, true, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
 
-  // TransferChecked requires mint + decimals — mandatory for Token-2022
-  tx.add(createTransferCheckedInstruction(
-    fromATA, mint, toATA, payer, rawAmt, RUNEX_DECIMALS, [], TOKEN_2022_PROGRAM_ID,
-  ));
+    step = "toATA";
+    const toATA = getAssociatedTokenAddressSync(mint, TREASURY, true, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
 
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-  tx.recentBlockhash = blockhash;
-  tx.feePayer        = payer;
+    step = "tx-create";
+    const tx = new Transaction();
 
-  const signed    = await provider.signTransaction(tx);
-  const signature = await connection.sendRawTransaction(signed.serialize());
-  await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
+    step = "tx-addATA";
+    tx.add(createAssociatedTokenAccountIdempotentInstruction(
+      payer, toATA, TREASURY, mint, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID,
+    ));
 
-  return signature;
+    step = "tx-addTransfer";
+    tx.add(createTransferCheckedInstruction(
+      fromATA, mint, toATA, payer, rawAmt, RUNEX_DECIMALS, [], TOKEN_2022_PROGRAM_ID,
+    ));
+
+    step = "blockhash";
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+
+    step = "tx-set";
+    tx.recentBlockhash = blockhash;
+    tx.feePayer        = payer;
+
+    step = "sign";
+    const signed = await provider.signTransaction(tx);
+
+    step = "send";
+    const signature = await connection.sendRawTransaction(signed.serialize());
+
+    step = "confirm";
+    await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
+
+    return signature;
+  } catch (e: unknown) {
+    const msg = (e as Error)?.message ?? String(e);
+    throw new Error(`[${step}] ${msg}`);
+  }
 }

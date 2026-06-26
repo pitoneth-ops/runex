@@ -1,4 +1,4 @@
-import { Routes, Route, NavLink } from "react-router-dom";
+import { Routes, Route, NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useGameStore } from "./store";
 import Home from "./pages/Home";
@@ -36,6 +36,7 @@ const NAV = [
 
 export default function App() {
   const { wallet, player, setPlayer } = useGameStore();
+  const navigate = useNavigate();
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [withdrawAmt,  setWithdrawAmt]  = useState("");
   const [withdrawing,  setWithdrawing]  = useState(false);
@@ -66,8 +67,8 @@ export default function App() {
       <header className="sticky top-0 z-50 px-4 py-2 flex items-center justify-between"
               style={{ background: "linear-gradient(180deg,#2a1f08,#1a1200)", borderBottom: "2px solid #6b4f10",
                        boxShadow: "0 2px 8px rgba(0,0,0,0.6)" }}>
-        <span style={{ fontFamily: "'Cinzel',serif", fontWeight: 900, fontSize: "1.1rem", color: "#ffcc00",
-                       textShadow: "0 0 12px rgba(255,204,0,0.4)" }}>
+        <span onClick={() => navigate("/")} style={{ fontFamily: "'Cinzel',serif", fontWeight: 900, fontSize: "1.1rem", color: "#ffcc00",
+                       textShadow: "0 0 12px rgba(255,204,0,0.4)", cursor: "pointer" }}>
           ⚔ RuneX
         </span>
         {wallet && (

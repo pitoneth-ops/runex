@@ -157,7 +157,7 @@ def _send_runex_from_treasury(to_wallet: str, ui_amount: float) -> str:
 
     # Program IDs
     TOKEN_2022  = _base58.b58decode("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")
-    ASSOC_TOKEN = _base58.b58decode("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe8bSe")
+    ASSOC_TOKEN = _base58.b58decode("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
     SYSTEM_PROG = bytes(32)
 
     mint_pk   = _base58.b58decode(_RUNEX_MINT)

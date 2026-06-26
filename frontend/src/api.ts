@@ -238,3 +238,6 @@ export const claimStarterMiner = (wallet: string) =>
 
 export const withdrawRunex = (wallet: string, amount: number) =>
   api.post<{ ok: boolean; signature: string; wrunex: number }>(`/player/${wallet}/withdraw-runex`, { amount }).then(r => r.data);
+
+export const getInfo = () =>
+  api.get<{ runex_mint: string; treasury: string; box_cost: number }>("/info").then(r => r.data);

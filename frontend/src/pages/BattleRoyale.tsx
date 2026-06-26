@@ -156,7 +156,7 @@ function FightTrack({ result, currentFight }: { result: BRResult | null; current
 type PageState = "lobby" | "fighting" | "done";
 
 export default function BattleRoyale() {
-  const { wallet, player, setPlayer } = useGameStore();
+  const { wallet, player, setPlayer, mintAddress } = useGameStore();
   const [loading,    setLoading]    = useState(false);
   const [pageState,  setPageState]  = useState<PageState>("lobby");
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -203,7 +203,7 @@ export default function BattleRoyale() {
     setOppHpPct(100);
 
     try {
-      const txSig = await payRunex(ENTRY_COST);
+      const txSig = await payRunex(ENTRY_COST, mintAddress);
       const res = await battleRoyale(wallet, selectedHero.id, txSig);
       setResult(res);
       await getPlayer(wallet).then(p => setPlayer(p));

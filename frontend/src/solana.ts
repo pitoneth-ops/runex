@@ -4,7 +4,7 @@ if (typeof (globalThis as any).Buffer === "undefined") (globalThis as any).Buffe
 
 import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import {
-  getAssociatedTokenAddress,
+  getAssociatedTokenAddressSync,
   createTransferCheckedInstruction,
   createAssociatedTokenAccountIdempotentInstruction,
   TOKEN_2022_PROGRAM_ID,
@@ -27,13 +27,14 @@ export async function payRunex(uiAmount: number, mintStr: string): Promise<strin
   }).solana;
   if (!provider?.publicKey) throw new Error("Wallet not connected");
 
-  const payer   = provider.publicKey;
+  // Re-wrap through our PublicKey to avoid Phantom's internal web3.js version conflicts
+  const payer   = new PublicKey(provider.publicKey.toString());
   const mint    = new PublicKey(mintStr);
   const rawAmt  = BigInt(Math.round(uiAmount * 10 ** RUNEX_DECIMALS));
 
-  // Token-2022: ATA addresses differ from legacy token — must pass TOKEN_2022_PROGRAM_ID
-  const fromATA = await getAssociatedTokenAddress(mint, payer,    false, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
-  const toATA   = await getAssociatedTokenAddress(mint, TREASURY, false, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+  // allowOwnerOffCurve=true skips isOnCurve() which triggers the version-mismatch 'Im' error
+  const fromATA = getAssociatedTokenAddressSync(mint, payer,    true, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+  const toATA   = getAssociatedTokenAddressSync(mint, TREASURY, true, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
 
   const tx = new Transaction();
 

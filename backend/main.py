@@ -156,7 +156,7 @@ def _send_runex_from_treasury(to_wallet: str, ui_amount: float) -> str:
         raise ValueError("TREASURY_PRIVATE_KEY does not match the treasury wallet — double-check the key")
 
     # Program IDs
-    TOKEN_2022  = _base58.b58decode("TokenzQdBNbLqP5VEhdkAS6EPULC3gwQ2Wr6ziJCq5b")
+    TOKEN_2022  = _base58.b58decode("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")
     ASSOC_TOKEN = _base58.b58decode("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe8bSe")
     SYSTEM_PROG = bytes(32)
 
@@ -359,6 +359,34 @@ def create_tables():
             c.commit()
     except Exception:
         pass
+
+    _restore_failed_withdraw_2026()
+
+
+def _restore_failed_withdraw_2026():
+    """Restore 821,364 wRuneX lost to a failed on-chain TX caused by wrong TOKEN_2022 address."""
+    try:
+        with engine.connect() as c:
+            done = c.execute(text(
+                "SELECT COUNT(*) FROM transactions WHERE tx_type = 'wrunex_restore_2026'"
+            )).scalar()
+            if done:
+                return
+            row = c.execute(text(
+                "SELECT player_id FROM transactions WHERE tx_type = 'withdraw_runex' ORDER BY id DESC LIMIT 1"
+            )).first()
+            if not row:
+                return
+            pid = row[0]
+            c.execute(text("UPDATE players SET wrunex = wrunex + 821364 WHERE id = :pid"), {"pid": pid})
+            c.execute(text(
+                "INSERT INTO transactions (player_id, tx_type, description, value, created_at) "
+                "VALUES (:pid, 'wrunex_restore_2026', 'Restore: 821,364 wRuneX from failed withdraw', 821364, :ts)"
+            ), {"pid": pid, "ts": datetime.now(timezone.utc).isoformat()})
+            c.commit()
+            print(f"[restore_failed_withdraw_2026] Restored 821,364 wRuneX to player {pid}")
+    except Exception as e:
+        print(f"[restore_failed_withdraw_2026] {e}")
 
 
 def _backfill_char_stats():

@@ -74,39 +74,47 @@ export default function App() {
           <div className="flex items-center gap-2">
             {/* Gold */}
             <div className="flex items-center gap-1">
-              <OsrsIcon src={GAME_ICONS.gold[0]} fallback="🪙" size={16} />
-              <span style={{ fontFamily: "'Cinzel',serif", color: "#ffcc00", fontWeight: 700, fontSize: "0.8rem" }}>
+              <OsrsIcon src={GAME_ICONS.gold[0]} fallback="🪙" size={14} />
+              <span style={{ fontFamily: "'Cinzel',serif", color: "#ffcc00", fontWeight: 700, fontSize: "0.72rem" }}>
                 {(player?.tokens ?? 0).toLocaleString()}
+                <span style={{ fontSize: "0.55rem", opacity: 0.7, marginLeft: 2 }}>GP</span>
               </span>
             </div>
-            <span style={{ color: "#a08040", fontSize: "0.7rem" }}>
+            <span style={{ color: "#6b4f10", fontSize: "0.6rem" }}>·</span>
+            {/* RuneX (on-chain wallet) */}
+            <div className="flex items-center gap-1">
+              <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={13} />
+              <span style={{ fontFamily: "'Cinzel',serif", color: "#ffaa30", fontWeight: 700, fontSize: "0.72rem" }}>
+                {(player?.runex ?? 0).toLocaleString()}
+                <span style={{ fontSize: "0.55rem", opacity: 0.7, marginLeft: 2 }}>RX</span>
+              </span>
+            </div>
+            <span style={{ color: "#6b4f10", fontSize: "0.6rem" }}>·</span>
+            {/* wRuneX (in-game, clickable withdraw) */}
+            <button
+              onClick={() => { setShowWithdraw(v => !v); setWithdrawMsg(null); }}
+              style={{
+                display: "flex", alignItems: "center", gap: 4,
+                fontSize: "0.72rem", padding: "3px 8px", borderRadius: 6, cursor: "pointer",
+                border: "1.5px solid rgba(255,96,96,0.45)", background: "rgba(255,96,96,0.1)",
+                color: "#ff6060", fontWeight: 900, fontFamily: "'Cinzel',serif",
+              }}>
+              <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={13} />
+              {wrunex.toLocaleString()}
+              <span style={{ fontSize: "0.55rem", opacity: 0.8, marginLeft: 2 }}>wRX</span>
+            </button>
+            <span style={{ color: "#a08040", fontSize: "0.65rem" }}>
               {wallet.slice(0, 4)}…{wallet.slice(-4)}
             </span>
-            {/* wRuneX + Withdraw — grouped with Exit */}
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => { setShowWithdraw(v => !v); setWithdrawMsg(null); }}
-                style={{
-                  display: "flex", alignItems: "center", gap: 5,
-                  fontSize: "0.75rem", padding: "4px 10px", borderRadius: 6, cursor: "pointer",
-                  border: "1.5px solid rgba(255,96,96,0.5)", background: "rgba(255,96,96,0.12)",
-                  color: "#ff6060", fontWeight: 900, fontFamily: "'Cinzel',serif",
-                  boxShadow: "0 0 8px rgba(255,96,96,0.15)",
-                }}>
-                <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={14} />
-                {wrunex.toLocaleString()}
-                <span style={{ fontSize: "0.6rem", opacity: 0.8, marginLeft: 2 }}>wRX</span>
-              </button>
-              <button
-                onClick={() => { useGameStore.getState().setWallet(""); useGameStore.getState().setPlayer(null); }}
-                style={{
-                  fontSize: "0.6rem", padding: "3px 7px", borderRadius: 6,
-                  border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.06)",
-                  color: "#ef444488", cursor: "pointer",
-                }}>
-                ⏏ Exit
-              </button>
-            </div>
+            <button
+              onClick={() => { useGameStore.getState().setWallet(""); useGameStore.getState().setPlayer(null); }}
+              style={{
+                fontSize: "0.6rem", padding: "3px 7px", borderRadius: 6,
+                border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.06)",
+                color: "#ef444488", cursor: "pointer",
+              }}>
+              ⏏ Exit
+            </button>
           </div>
         )}
       </header>

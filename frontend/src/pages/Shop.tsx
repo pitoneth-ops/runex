@@ -116,6 +116,7 @@ export default function Shop() {
   const { wallet, player, setPlayer } = useGameStore();
 
   const gold   = player?.tokens ?? 0;
+  const runex  = player?.runex  ?? 0;
   const wrunex = player?.wrunex ?? 0;
 
   // RuneX chest state
@@ -182,18 +183,24 @@ export default function Shop() {
       </div>
 
       {/* Wallet */}
-      <div className="rounded-xl px-4 py-2.5 flex items-center justify-between"
+      <div className="rounded-xl px-4 py-2.5 flex items-center gap-4"
            style={{ background: "rgba(0,0,0,0.3)", border: "1px solid #6b4f10" }}>
-        <div className="flex items-center gap-2">
-          <OsrsSprite srcs={GAME_ICONS.gold} fallback="🪙" size={16} pixelated={false} />
-          <span style={{ color: "#ffcc00", fontWeight: 700, fontFamily: "'Cinzel',serif", fontSize: "0.82rem" }}>
-            {gold.toLocaleString()} Gold
+        <div className="flex items-center gap-1.5">
+          <OsrsSprite srcs={GAME_ICONS.gold} fallback="🪙" size={15} pixelated={false} />
+          <span style={{ color: "#ffcc00", fontWeight: 700, fontFamily: "'Cinzel',serif", fontSize: "0.78rem" }}>
+            {gold.toLocaleString()} <span style={{ opacity: 0.6, fontSize: "0.65rem" }}>GP</span>
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={14} />
-          <span style={{ color: "#ff6060", fontWeight: 700, fontFamily: "'Cinzel',serif", fontSize: "0.82rem" }}>
-            {wrunex.toLocaleString()} <span style={{ opacity: 0.7 }}>wRX</span>
+          <span style={{ color: "#ffaa30", fontWeight: 700, fontFamily: "'Cinzel',serif", fontSize: "0.78rem" }}>
+            {runex.toLocaleString()} <span style={{ opacity: 0.6, fontSize: "0.65rem" }}>RX</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={14} />
+          <span style={{ color: "#ff6060", fontWeight: 700, fontFamily: "'Cinzel',serif", fontSize: "0.78rem" }}>
+            {wrunex.toLocaleString()} <span style={{ opacity: 0.6, fontSize: "0.65rem" }}>wRX</span>
           </span>
         </div>
       </div>

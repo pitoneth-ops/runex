@@ -175,17 +175,30 @@ export default function Home() {
           </p>
 
           {/* Balances */}
-          <div style={{ display: "flex", justifyContent: "center", gap: 24, marginTop: 14 }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 14 }}>
             <div>
               <p style={{ color: "#6b4f10", fontSize: "0.6rem" }}>GOLD</p>
-              <p style={{ fontFamily: "'Cinzel',serif", color: "#ffcc00", fontSize: "1.1rem", fontWeight: 900 }}>
-                {player.tokens.toLocaleString()} gp
-              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "center" }}>
+                <OsrsSprite srcs={GAME_ICONS.gold} fallback="🪙" size={14} />
+                <p style={{ fontFamily: "'Cinzel',serif", color: "#ffcc00", fontSize: "1.1rem", fontWeight: 900 }}>
+                  {player.tokens.toLocaleString()}
+                </p>
+              </div>
+            </div>
+            <div style={{ width: 1, background: "#2a1a00" }} />
+            <div>
+              <p style={{ color: "#6b4f10", fontSize: "0.6rem" }}>RUNEX</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "center" }}>
+                <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={14} />
+                <p style={{ fontFamily: "'Cinzel',serif", color: "#ffaa30", fontSize: "1.1rem", fontWeight: 900 }}>
+                  {(player.runex ?? 0).toLocaleString()}
+                </p>
+              </div>
             </div>
             <div style={{ width: 1, background: "#2a1a00" }} />
             <div>
               <p style={{ color: "#6b4f10", fontSize: "0.6rem" }}>wRUNEX</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, justifyContent: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "center" }}>
                 <OsrsSprite srcs={RUNEX_ICON} fallback="💎" size={14} />
                 <p style={{ fontFamily: "'Cinzel',serif", color: "#ff6060", fontSize: "1.1rem", fontWeight: 900 }}>
                   {(player.wrunex ?? 0).toLocaleString()}
